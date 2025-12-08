@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AI-Powered Fundamental Analysis Platform - Comprehensive investment research and financial analysis">
+  <meta name="keywords" content="fundamental analysis, investment research, financial analysis, stock analysis, AI-powered">
+  <meta name="author" content="AI Investment Research">
+  
+  <title>AI-Powered Fundamental Analysis | Investment Research Platform</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  
+  <!-- ========== Sidebar Navigation ========== -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="#home" class="sidebar-brand">
+        <span class="brand-icon">📊</span>
+        <span class="brand-text">AI Fundamental Analysis</span>
+      </a>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="#overview" class="sidebar-link">
+        <span class="link-icon">🏢</span>
+        <span class="link-text">Overview</span>
+      </a></li>
+      <li><a href="#revenue" class="sidebar-link">
+        <span class="link-icon">💰</span>
+        <span class="link-text">Revenue</span>
+      </a></li>
+      <li><a href="#financials" class="sidebar-link">
+        <span class="link-icon">📈</span>
+        <span class="link-text">Financials</span>
+      </a></li>
+      <li><a href="#management" class="sidebar-link">
+        <span class="link-icon">👥</span>
+        <span class="link-text">Management</span>
+      </a></li>
+      <li><a href="#competitive" class="sidebar-link">
+        <span class="link-icon">⚔️</span>
+        <span class="link-text">Competition</span>
+      </a></li>
+      <li><a href="#sentiment" class="sidebar-link">
+        <span class="link-icon">📰</span>
+        <span class="link-text">Sentiment</span>
+      </a></li>
+      <li><a href="#forecasts" class="sidebar-link">
+        <span class="link-icon">🔮</span>
+        <span class="link-text">Forecasts</span>
+      </a></li>
+      <li><a href="#valuation" class="sidebar-link">
+        <span class="link-icon">💎</span>
+        <span class="link-text">Valuation</span>
+      </a></li>
+      <li><a href="#stakeholders" class="sidebar-link">
+        <span class="link-icon">🏛️</span>
+        <span class="link-text">Investors</span>
+      </a></li>
+      <li><a href="#recommendation" class="sidebar-link">
+        <span class="link-icon">✅</span>
+        <span class="link-text">Conclusion</span>
+      </a></li>
+      <li><a href="#technical" class="sidebar-link">
+        <span class="link-icon">📊</span>
+        <span class="link-text">Technical</span>
+      </a></li>
+    </ul>
+  </nav>
+
+  <!-- Main Content Wrapper -->
+  <div class="main-content">
+
+  <!-- ========== Loading Overlay ========== -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <h2 id="loadingText">Analyzing Company...</h2>
+      <p id="loadingSubtext">Fetching financial data and generating AI insights</p>
+      <div class="loading-progress">
+        <div class="progress-bar">
+          <div class="progress-fill" id="loadingProgress" style="width: 0%"></div>
+        </div>
+        <p id="loadingStep" style="margin-top: var(--spacing-sm); color: var(--text-muted); font-size: 0.875rem;">Initializing...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Error Message ========== -->
+  <div id="errorMessage" class="error-message hidden">
+    <div class="error-content">
+      <span class="error-icon">⚠️</span>
+      <div>
+        <h3 id="errorTitle">Error</h3>
+        <p id="errorText"></p>
+      </div>
+      <button class="btn btn-secondary" onclick="hideError()">Dismiss</button>
+    </div>
+  </div>
+
+  <!-- ========== Header Bar with Search ========== -->
+  <header class="header-bar" id="headerBar">
+    <div class="header-container">
+      <!-- Hamburger Menu -->
+      <button class="hamburger-menu" id="hamburgerMenu" onclick="toggleSidebar()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <!-- Search Box -->
+      <div class="header-search">
+        <input 
+          type="text" 
+          id="searchInput" 
+          class="header-search-input" 
+          placeholder="Enter ticker (e.g., AAPL, MSFT, GOOGL)" 
+          onkeypress="handleSearchKeypress(event)"
+        />
+        <button class="btn btn-primary header-search-button" onclick="searchCompany()">
+          <span id="searchButtonText">Analyze</span>
+        </button>
+      </div>
+
+      <!-- Quick Examples -->
+      <div class="header-examples">
+        <button class="example-btn-small" onclick="searchExample('AAPL')">AAPL</button>
+        <button class="example-btn-small" onclick="searchExample('MSFT')">MSFT</button>
+        <button class="example-btn-small" onclick="searchExample('GOOGL')">GOOGL</button>
+        <button class="example-btn-small" onclick="searchExample('TSLA')">TSLA</button>
+        <button class="example-btn-small" onclick="searchExample('NVDA')">NVDA</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========== Section 1: Company Overview ========== -->
+  <section id="overview" class="section">
+    <div class="container">
+      <div class="hero fade-in">
+        <div class="hero-content">
+          <div>
+            <div class="hero-logo" id="companyLogo">🚀</div>
+            <h1 id="companyName">Loading...</h1>
+            <p id="companyTagline" style="font-size: 1.25rem; color: var(--text-secondary); margin-bottom: var(--spacing-md);"></p>
+            
+            <div class="toggle-container" style="margin: var(--spacing-lg) 0;">
+              <span style="color: var(--text-secondary);">Simple</span>
+              <div class="toggle" id="explanationToggle" onclick="toggleExplanation()">
+                <div class="toggle-slider"></div>
+              </div>
+              <span style="color: var(--text-secondary);">Expert</span>
+            </div>
+            
+            <p id="companyExplanation" style="font-size: 1.125rem; line-height: 1.8;"></p>
+          </div>
+          
+          <div class="hero-stats" id="heroStats">
+            <!-- Stats will be populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+      
+      <div class="grid grid-2" style="margin-top: var(--spacing-xl);">
+        <div class="card card-glass">
+          <div class="card-header">
+            <h3 class="card-title">💼 Business Model</h3>
+          </div>
+          <div class="card-body">
+            <p id="businessModelDesc"></p>
+            <div id="businessStreams" style="margin-top: var(--spacing-md);"></div>
+          </div>
+        </div>
+        
+        <div class="card card-glass">
+          <div class="card-header">
+            <h3 class="card-title">🎯 Business Segments</h3>
+          </div>
+          <div class="card-body">
+            <div id="businessSegments" class="grid grid-2"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="grid grid-2" style="margin-top: var(--spacing-lg);">
+        <div class="card card-glass">
+          <div class="card-header">
+            <h3 class="card-title">⚡ Competitive Advantages</h3>
+          </div>
+          <div class="card-body">
+            <div id="advantages"></div>
+          </div>
+        </div>
+        
+        <div class="card card-glass">
+          <div class="card-header">
+            <h3 class="card-title">⚠️ Key Challenges</h3>
+          </div>
+          <div class="card-body">
+            <div id="challenges"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card card-glass" style="margin-top: var(--spacing-lg);">
+        <div class="card-header">
+          <h3 class="card-title">🌍 Market Position</h3>
+        </div>
+        <div class="card-body">
+          <div class="chart-wrapper">
+            <canvas id="marketShareChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Section 2: Revenue Breakdown ========== -->
+  <section id="revenue" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">💰 Revenue Breakdown</h2>
+        <p class="section-subtitle">5-Year revenue analysis by segment and geography</p>
+      </div>
+      
+      <div class="btn-group" style="justify-content: center; margin-bottom: var(--spacing-lg);">
+        <button class="btn btn-primary" onclick="filterRevenue('all')">All Data</button>
+        <button class="btn btn-secondary" onclick="filterRevenue('segments')">By Segment</button>
+        <button class="btn btn-secondary" onclick="filterRevenue('geography')">By Geography</button>
+      </div>
+      
+      <div class="chart-container">
+        <div class="chart-wrapper">
+          <canvas id="revenueChart"></canvas>
+        </div>
+      </div>
+      
+      <div class="table-container" style="margin-top: var(--spacing-lg);">
+        <table id="revenueTable">
+          <thead>
+            <tr>
+              <th class="sortable" onclick="sortTable('revenueTable', 0)">Segment</th>
+              <th class="sortable" onclick="sortTable('revenueTable', 1)">2020</th>
+              <th class="sortable" onclick="sortTable('revenueTable', 2)">2021</th>
+              <th class="sortable" onclick="sortTable('revenueTable', 3)">2022</th>
+              <th class="sortable" onclick="sortTable('revenueTable', 4)">2023</th>
+              <th class="sortable" onclick="sortTable('revenueTable', 5)">2024</th>
+              <th class="sortable" onclick="sortTable('revenueTable', 6)">5Y Growth</th>
+            </tr>
+          </thead>
+          <tbody id="revenueTableBody">
+            <!-- Populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="grid grid-4" style="margin-top: var(--spacing-lg);">
+        <div class="card">
+          <h4>🌎 North America</h4>
+          <div class="stat-value">55%</div>
+          <div class="metric-change positive">⬆️ 18% YoY</div>
+        </div>
+        <div class="card">
+          <h4>🇪🇺 Europe</h4>
+          <div class="stat-value">25%</div>
+          <div class="metric-change positive">⬆️ 22% YoY</div>
+        </div>
+        <div class="card">
+          <h4>🌏 Asia Pacific</h4>
+          <div class="stat-value">15%</div>
+          <div class="metric-change positive">⬆️ 35% YoY</div>
+        </div>
+        <div class="card">
+          <h4>🌍 Rest of World</h4>
+          <div class="stat-value">5%</div>
+          <div class="metric-change positive">⬆️ 28% YoY</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Section 3: Financial Analysis ========== -->
+  <!-- ========== Section 3: Financial Analysis (SEC Data) ========== -->
+  <section id="financials" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">📊 Financial Analysis (SEC Data)</h2>
+        <p class="section-subtitle">Real-time verified data from SEC EDGAR (10-K/10-Q)</p>
+      </div>
+
+      <!-- Controls & Filters -->
+      <div class="card card-glass" style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-md);">
+            <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+                <span style="color: var(--text-muted); font-size: 0.875rem;">Data Type:</span>
+                <div class="btn-group" style="margin: 0;">
+                    <button class="btn btn-sm btn-primary" id="btn-annual" onclick="setPeriod('annual')">Annual</button>
+                    <button class="btn btn-sm btn-secondary" id="btn-quarter" onclick="setPeriod('quarter')">Quarterly</button>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+                 <span style="color: var(--text-muted); font-size: 0.875rem;">Range:</span>
+                 <select id="rangeStart" class="form-select" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-color);"></select>
+                 <span>-</span>
+                 <select id="rangeEnd" class="form-select" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-color);"></select>
+            </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-container">
+        <div class="tabs-header" style="display: flex; gap: var(--spacing-sm); margin-bottom: var(--spacing-md); overflow-x: auto; padding-bottom: 4px;">
+            <button class="btn btn-secondary tab-btn active" data-tab="income" onclick="switchFinancialTab('income')">Income Statement</button>
+            <button class="btn btn-secondary tab-btn" data-tab="cashflow" onclick="switchFinancialTab('cashflow')">Cash Flow</button>
+            <button class="btn btn-secondary tab-btn" data-tab="balance" onclick="switchFinancialTab('balance')">Balance Sheet</button>
+            <button class="btn btn-secondary tab-btn" data-tab="ratios" onclick="switchFinancialTab('ratios')">Financial Ratios</button>
+        </div>
+        
+        <div class="tabs-content">
+            <!-- Metric Toggles -->
+            <div id="metricToggles" style="display: flex; flex-wrap: wrap; gap: var(--spacing-xs); margin-bottom: var(--spacing-md);">
+                <!-- Populated by JS -->
+            </div>
+
+            <!-- Chart -->
+            <div class="card card-glass" style="margin-bottom: var(--spacing-lg);">
+                <div class="card-body">
+                    <div class="chart-wrapper" style="height: 400px;">
+                        <canvas id="secFinancialChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Growth Summary -->
+            <div id="growthSummary" class="grid grid-4" style="gap: var(--spacing-md);">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Section 4: Management Team ========== -->
+  <section id="management" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">👨‍💼 Management Team</h2>
+        <p class="section-subtitle">Leadership expertise and insider ownership</p>
+      </div>
+      
+      <div class="grid grid-2" id="executivesGrid">
+        <!-- Populated by JavaScript -->
+      </div>
+      
+      <div class="grid grid-2" style="margin-top: var(--spacing-xl);">
+        <div class="card card-glass">
+          <div class="card-header">
+            <h3 class="card-title">📊 Leadership Qualities</h3>
+          </div>
+          <div class="card-body" id="leadershipQualities">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+        
+        <div class="card card-glass">
+          <div class="card-header">
+            <h3 class="card-title">💼 Ownership Structure</h3>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrapper" style="height: 300px;">
+              <canvas id="ownershipChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Section 5: Competitive Landscape ========== -->
+  <section id="competitive" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">⚔️ Competitive Landscape</h2>
+        <p class="section-subtitle">Market position and competitive analysis</p>
+      </div>
+      
+      <div class="table-container">
+        <table id="competitorTable">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th class="sortable" onclick="sortTable('competitorTable', 1)">Revenue ($B)</th>
+              <th class="sortable" onclick="sortTable('competitorTable', 2)">Net Margin</th>
+              <th class="sortable" onclick="sortTable('competitorTable', 3)">Market Cap ($B)</th>
+              <th class="sortable" onclick="sortTable('competitorTable', 4)">FCF ($B)</th>
+              <th class="sortable" onclick="sortTable('competitorTable', 5)">P/E Ratio</th>
+              <th class="sortable" onclick="sortTable('competitorTable', 6)">EPS Growth</th>
+            </tr>
+          </thead>
+          <tbody id="competitorTableBody">
+            <!-- Populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="grid grid-2" style="margin-top: var(--spacing-xl);">
+        <div class="card card-glass">
+          <div class="card-header">
+            <h3 class="card-title">🎯 Market Opportunity</h3>
+          </div>
+          <div class="card-body">
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <div class="metric-label">TAM (Total Addressable)</div>
+                <div class="metric-value">$1.2T</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">SAM (Serviceable)</div>
+                <div class="metric-value">$450B</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">SOM (Obtainable)</div>
+                <div class="metric-value">$95B</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">3Y Market Growth</div>
+                <div class="metric-value text-success">22.5%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card card-glass">
+          <div class="card-header">
+            <h3 class="card-title">⚡ Competitive Strengths Matrix</h3>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrapper" style="height: 300px;">
+              <canvas id="competitiveChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="grid grid-2" style="margin-top: var(--spacing-lg);">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🚀 Opportunities</h3>
+          </div>
+          <div class="card-body" id="opportunities">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">⚠️ Threats</h3>
+          </div>
+          <div class="card-body" id="threats">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Section 6: Market Sentiment ========== -->
+  <section id="sentiment" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">💬 Market Sentiment</h2>
+        <p class="section-subtitle">Analyst ratings and price targets</p>
+      </div>
+      
+      <div class="grid grid-2">
+        <div class="card card-glass">
+          <div class="card-header">
+            <h3 class="card-title">📊 Analyst Ratings</h3>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrapper" style="height: 300px;">
+              <canvas id="ratingsChart"></canvas>
+            </div>
+            <div id="ratingsSummary" style="margin-top: var(--spacing-md);"></div>
+          </div>
+        </div>
+        
+        <div class="card card-glass">
+          <div class="card-header">
+            <h3 class="card-title">🎯 Price Targets</h3>
+          </div>
+          <div class="card-body">
+            <div id="priceTargetGauge" style="text-align: center;">
+              <!-- Populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="grid grid-2" style="margin-top: var(--spacing-lg);">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🐂 Bull Case</h3>
+          </div>
+          <div class="card-body">
+            <ul id="bullishArgs" style="list-style: none; padding: 0;">
+              <!-- Populated by JavaScript -->
+            </ul>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🐻 Bear Case</h3>
+          </div>
+          <div class="card-body">
+            <ul id="bearishArgs" style="list-style: none; padding: 0;">
+              <!-- Populated by JavaScript -->
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Section 7: Forecasts to 2030 ========== -->
+  <section id="forecasts" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">🔮 Forecasts to 2030</h2>
+        <p class="section-subtitle">Revenue, margin, and cash flow projections</p>
+      </div>
+      
+      <div class="btn-group" style="justify-content: center; margin-bottom: var(--spacing-lg);">
+        <button class="btn btn-primary" id="baseScenario" onclick="switchScenario('base')">Base Case</button>
+        <button class="btn btn-secondary" id="bullScenario" onclick="switchScenario('bull')">Bull Case</button>
+        <button class="btn btn-secondary" id="bearScenario" onclick="switchScenario('bear')">Bear Case</button>
+      </div>
+      
+      <div class="chart-container">
+        <div class="chart-wrapper">
+          <canvas id="forecastChart"></canvas>
+        </div>
+      </div>
+      
+      <div class="grid grid-2" style="margin-top: var(--spacing-xl);">
+        <div class="card card-glass">
+          <div class="card-header">
+            <h3 class="card-title">📈 Macro Trends</h3>
+          </div>
+          <div class="card-body">
+            <div id="macroTrends"></div>
+          </div>
+        </div>
+        
+        <div class="card card-glass">
+          <div class="card-header">
+            <h3 class="card-title">🎲 Risk Heatmap</h3>
+          </div>
+          <div class="card-body">
+            <div id="riskHeatmap"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Section 8: Valuation (DCF) ========== -->
+  <section id="valuation" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">🧮 Valuation Analysis</h2>
+        <p class="section-subtitle">Discounted Cash Flow (DCF) model and sensitivity analysis</p>
+      </div>
+      
+      <div class="card card-glass">
+        <div class="card-header">
+          <h3 class="card-title">💎 Fair Value Estimate</h3>
+        </div>
+        <div class="card-body">
+          <div id="fairValueDisplay" style="text-align: center; padding: var(--spacing-lg);">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+      
+      <div class="grid grid-3" style="margin-top: var(--spacing-lg);">
+        <div class="card">
+          <div class="card-header">
+            <h4>🎯 Base Case</h4>
+          </div>
+          <div class="card-body" id="baseValuation">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h4>🚀 Bull Case</h4>
+          </div>
+          <div class="card-body" id="bullValuation">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h4>⚠️ Bear Case</h4>
+          </div>
+          <div class="card-body" id="bearValuation">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+      
+      <div class="card card-glass" style="margin-top: var(--spacing-lg);">
+        <div class="card-header">
+          <h3 class="card-title">🌪️ Sensitivity Analysis</h3>
+        </div>
+        <div class="card-body">
+          <div class="table-container">
+            <table id="sensitivityTable">
+              <thead>
+                <tr>
+                  <th>WACC \ Growth</th>
+                  <th>2.0%</th>
+                  <th>2.5%</th>
+                  <th>3.0%</th>
+                  <th>3.5%</th>
+                  <th>4.0%</th>
+                </tr>
+              </thead>
+              <tbody id="sensitivityTableBody">
+                <!-- Populated by JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Section 9: Stakeholders & Notable Investors ========== -->
+  <section id="stakeholders" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">🧠 Stakeholders & Notable Investors</h2>
+        <p class="section-subtitle">Institutional ownership and insider trading activity</p>
+      </div>
+      
+      <div class="grid grid-3" id="notableInvestors">
+        <!-- Populated by JavaScript -->
+      </div>
+      
+      <div class="grid grid-2" style="margin-top: var(--spacing-xl);">
+        <div class="card card-glass">
+          <div class="card-header">
+            <h3 class="card-title">📊 Ownership Breakdown</h3>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrapper" style="height: 300px;">
+              <canvas id="ownershipBreakdownChart"></canvas>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card card-glass">
+          <div class="card-header">
+            <h3 class="card-title">📈 Recent Insider Transactions</h3>
+          </div>
+          <div class="card-body">
+            <div id="insiderTransactions">
+              <!-- Populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Section 10: Final Conclusions & Recommendation ========== -->
+  <section id="recommendation" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">🧾 Final Recommendation</h2>
+        <p class="section-subtitle">Investment thesis and risk-reward analysis</p>
+      </div>
+      
+      <div class="card card-glass" style="text-align: center; padding: var(--spacing-xl);">
+        <div id="finalRating" style="margin-bottom: var(--spacing-lg);">
+          <!-- Populated by JavaScript -->
+        </div>
+        <div id="timeHorizonAnalysis" class="grid grid-3">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+      
+      <div class="grid grid-2" style="margin-top: var(--spacing-xl);">
+        <div>
+          <h3 style="text-align: center; margin-bottom: var(--spacing-lg);">🚀 Top 3 Reasons to Buy</h3>
+          <div id="topReasons">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+        
+        <div>
+          <h3 style="text-align: center; margin-bottom: var(--spacing-lg);">⚠️ Top 3 Risks</h3>
+          <div id="topRisks">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+      
+      <div class="card card-glass" style="margin-top: var(--spacing-xl);">
+        <div class="card-header">
+          <h3 class="card-title">🎯 Key Catalysts</h3>
+        </div>
+        <div class="card-body">
+          <div id="catalysts" class="grid grid-2">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+      
+      <div style="text-align: center; margin-top: var(--spacing-xl);">
+        <button class="btn btn-primary" onclick="exportPDF()">
+          📄 Export Full Report as PDF
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Section 11: Technical Chart Analysis ========== -->
+  <section id="technical" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">📈 Technical Chart Analysis</h2>
+        <p class="section-subtitle">Price action, indicators, and technical outlook</p>
+      </div>
+      
+      <div class="chart-container">
+        <div class="chart-header">
+          <h3 class="chart-title">Price Chart with Technical Indicators</h3>
+          <div class="btn-group">
+            <button class="btn btn-secondary" onclick="toggleIndicator('rsi')">RSI</button>
+            <button class="btn btn-secondary" onclick="toggleIndicator('macd')">MACD</button>
+            <button class="btn btn-secondary" onclick="toggleIndicator('ma')">Moving Averages</button>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="technicalChart"></canvas>
+        </div>
+      </div>
+      
+      <div class="grid grid-4" style="margin-top: var(--spacing-lg);">
+        <div class="card">
+          <h4>Current Price</h4>
+          <div class="stat-value text-success">$247</div>
+        </div>
+        <div class="card">
+          <h4>1Y Performance</h4>
+          <div class="stat-value text-success">+45.2%</div>
+        </div>
+        <div class="card">
+          <h4>3Y Performance</h4>
+          <div class="stat-value text-success">+185.3%</div>
+        </div>
+        <div class="card">
+          <h4>5Y Performance</h4>
+          <div class="stat-value text-success">+420.5%</div>
+        </div>
+      </div>
+      
+      <div class="grid grid-3" style="margin-top: var(--spacing-lg);">
+        <div class="card card-glass">
+          <div class="card-header">
+            <h3 class="card-title">📊 Technical Indicators</h3>
+          </div>
+          <div class="card-body" id="technicalIndicators">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+        
+        <div class="card card-glass">
+          <div class="card-header">
+            <h3 class="card-title">🎯 Support Levels</h3>
+          </div>
+          <div class="card-body" id="supportLevels">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+        
+        <div class="card card-glass">
+          <div class="card-header">
+            <h3 class="card-title">🚀 Resistance Levels</h3>
+          </div>
+          <div class="card-body" id="resistanceLevels">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer style="background: var(--secondary-bg); padding: var(--spacing-xl) 0; text-align: center; margin-top: var(--spacing-2xl);">
+    <div class="container">
+      <p style="color: var(--text-muted);">
+        © 2024 AI-Powered Fundamental Analysis Platform | For Educational Purposes Only
+      </p>
+      <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: var(--spacing-sm);">
+        This analysis is generated by AI and should not be considered as financial advice. Always conduct your own research and consult with a qualified financial advisor before making investment decisions.
+      </p>
+    </div>
+  </footer>
+
+  </div> <!-- End main-content -->
+
+  <!-- Scripts -->
+  <script src="data.js?v=5"></script>
+  <script src="sec-api-utils.js"></script>
+  <script src="app.js?v=5"></script>
+  <script src="app-api.js?v=5"></script>
+</body>
+</html>
