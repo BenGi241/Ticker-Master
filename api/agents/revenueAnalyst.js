@@ -32,9 +32,23 @@ Respond ONLY with valid JSON.`;
     super('Revenue Analyst', systemPrompt);
   }
 
-  analyze(ticker, companyOverview, financials, newsData) {
-    const userPrompt = `Analyze revenue for ${ticker}.
-Financials: ${JSON.stringify(financials, null, 2)}
+  async analyze(ticker, companyData) {
+    const { overview, financials, segments } = companyData;
+
+    let segmentsContext = "";
+    if (segments) {
+      segmentsContext = `
+PROVEN REVENUE SEGMENTATION (Institutional Data):
+Product Segments: ${JSON.stringify(segments.product?.slice(0, 5), null, 2)}
+Geographic Segments: ${JSON.stringify(segments.geographic?.slice(0, 5), null, 2)}
+`;
+    }
+
+    const userPrompt = `Ticker: ${ticker}
+Company: ${overview.name}
+${segmentsContext}
+Financial History (5 Years):
+${JSON.stringify(financials.annual, null, 2)}
 
 **CRITICAL: NARRATIVE-DRIVEN ANALYSIS**
 Apply the "Rule of 3" to every segment:

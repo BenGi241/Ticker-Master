@@ -75,9 +75,14 @@ app.get('/api/company/:ticker', async (req, res) => {
             res.json({ ...data, cached: false });
       } catch (error) {
             console.error('Error fetching company data:', error.message);
-            res.status(error.response?.status || 500).json({
+
+            // Check for API limits
+            const isLimit = error.message.includes('API limit');
+            const statusCode = isLimit ? 429 : (error.response?.status || 500);
+
+            res.status(statusCode).json({
                   error: error.message,
-                  details: error.response?.data || 'Failed to fetch company data'
+                  details: error.response?.data || (isLimit ? 'Alpha Vantage API rate limit reached. Please try again in 1 minute.' : 'Failed to fetch company data')
             });
       }
 });
@@ -104,9 +109,14 @@ app.get('/api/quote/:ticker', async (req, res) => {
             res.json({ ...data, cached: false });
       } catch (error) {
             console.error('Error fetching quote:', error.message);
-            res.status(error.response?.status || 500).json({
+
+            // Check for API limits
+            const isLimit = error.message.includes('API limit');
+            const statusCode = isLimit ? 429 : (error.response?.status || 500);
+
+            res.status(statusCode).json({
                   error: error.message,
-                  details: 'Failed to fetch quote data'
+                  details: isLimit ? 'Alpha Vantage API rate limit reached. Please try again in 1 minute.' : 'Failed to fetch quote data'
             });
       }
 });

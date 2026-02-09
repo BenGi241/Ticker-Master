@@ -183,43 +183,43 @@ const Overview = ({ data }) => {
                               {/* Valuation */}
                               <MetricCard
                                     label="Market Cap"
-                                    value={(overview.marketCap / 1000000000).toFixed(1)}
+                                    value={overview?.marketCap?.toFixed(1) || '0.0'}
                                     suffix="B"
                                     prefix="$"
                                     icon={DollarSign}
                                     color="blue"
-                                    subtext={`P/E: ${overview.peRatio || 'N/A'}`}
+                                    subtext={`P/E: ${overview?.peRatio || 'N/A'}`}
                               />
 
                               {/* Performance */}
                               <MetricCard
                                     label="52W High"
-                                    value={overview['52WeekHigh']}
+                                    value={overview?.fiftyTwoWeekHigh || 'N/A'}
                                     prefix="$"
                                     icon={Activity}
                                     color="indigo"
-                                    subtext={`Low: $${overview['52WeekLow']}`}
+                                    subtext={`Low: $${overview?.fiftyTwoWeekLow || 'N/A'}`}
                               />
 
                               {/* Dividends */}
                               <MetricCard
                                     label="Dividend Yield"
-                                    value={overview.dividendYield ? (overview.dividendYield * 100).toFixed(2) : '0.00'}
+                                    value={overview?.dividendYield ? (overview.dividendYield * 100).toFixed(2) : '0.00'}
                                     suffix="%"
                                     icon={Award}
                                     color="purple"
-                                    subtext={`Payout: ${overview.payoutRatio ? (overview.payoutRatio * 100).toFixed(1) + '%' : 'N/A'}`}
+                                    subtext={`EPS: $${overview?.eps || 'N/A'}`}
                               />
 
                               {/* Profitability */}
                               <MetricCard
                                     label="Profit Margin"
-                                    value={overview.profitMargin ? (overview.profitMargin * 100).toFixed(1) : '0.0'}
+                                    value={overview?.profitMargin ? (overview.profitMargin * 100).toFixed(1) : '0.0'}
                                     suffix="%"
                                     icon={TrendingUp}
                                     color="green"
-                                    trend={overview.profitMargin > 0 ? 'up' : 'down'}
-                                    subtext={`EPS: $${overview.eps}`}
+                                    trend={overview?.profitMargin > 0 ? 'up' : 'down'}
+                                    subtext={`Beta: ${overview?.beta || 'N/A'}`}
                               />
                         </motion.div>
                   </div>

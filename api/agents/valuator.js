@@ -100,7 +100,7 @@ Return ONLY valid JSON in this exact format:
   "hebrewInsight": "תובנה למשקיע: Your Hebrew insight..."
 }`;
 
-            const result = await this.generateContent(prompt);
+            const result = await this.generate(prompt);
 
             // Ensure Hebrew insight exists
             if (!result.hebrewInsight || !result.hebrewInsight.includes('תובנה למשקיע')) {

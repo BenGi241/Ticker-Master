@@ -138,15 +138,15 @@ const BusinessInsights = ({ ticker, financialData, newsData }) => {
                                     <div className="grid md:grid-cols-3 gap-4 mt-6">
                                           <div className="bg-gradient-to-br from-blue-600/10 to-indigo-600/10 rounded-lg p-4 border border-blue-500/20">
                                                 <div className="text-xs text-muted mb-1">Profitability</div>
-                                                <div className="text-sm text-white">{insights.businessModel.keyMetrics.profitability}</div>
+                                                <div className="text-sm text-white">{insights.businessModel.keyMetrics?.profitability}</div>
                                           </div>
                                           <div className="bg-gradient-to-br from-purple-600/10 to-pink-600/10 rounded-lg p-4 border border-purple-500/20">
                                                 <div className="text-xs text-muted mb-1">Scalability</div>
-                                                <div className="text-sm text-white">{insights.businessModel.keyMetrics.scalability}</div>
+                                                <div className="text-sm text-white">{insights.businessModel.keyMetrics?.scalability}</div>
                                           </div>
                                           <div className="bg-gradient-to-br from-green-600/10 to-emerald-600/10 rounded-lg p-4 border border-green-500/20">
                                                 <div className="text-xs text-muted mb-1">Sustainability</div>
-                                                <div className="text-sm text-white">{insights.businessModel.keyMetrics.sustainability}</div>
+                                                <div className="text-sm text-white">{insights.businessModel.keyMetrics?.sustainability}</div>
                                           </div>
                                     </div>
                               )}

@@ -76,16 +76,16 @@ function App() {
                 <section className="section">
                   <div className="container">
                     <BusinessInsights
-                      ticker={companyData.overview?.ticker || ticker}
+                      ticker={companyData?.overview?.ticker || ticker}
                       financialData={companyData}
-                      newsData={companyData.news}
+                      newsData={companyData?.news}
                     />
                   </div>
                 </section>
-                <Financials ticker={companyData.overview.ticker} />
+                <Financials ticker={companyData?.overview?.ticker || ticker} />
               </>
             ) : (
-              <AnalystReport report={companyData.ai} />
+              <AnalystReport report={companyData?.ai} />
             )}
           </div>
         )}

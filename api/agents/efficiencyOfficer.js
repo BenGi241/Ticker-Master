@@ -94,7 +94,7 @@ Return ONLY valid JSON in this exact format:
   "investorInsight": "<2-3 sentences: What is the efficiency verdict and what should investors watch?>"
 }`;
 
-            const result = await this.generateContent(prompt);
+            const result = await this.generate(prompt);
 
             // Ensure investorInsight exists
             if (!result.investorInsight && result.insight) {

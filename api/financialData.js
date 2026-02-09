@@ -7,9 +7,11 @@ const axios = require('axios');
 
 const ALPHA_VANTAGE_KEY = process.env.ALPHA_VANTAGE_API_KEY;
 const FINNHUB_KEY = process.env.FINNHUB_API_KEY;
+const FMP_KEY = process.env.FMP_API_KEY;
 
 const ALPHA_VANTAGE_BASE = 'https://www.alphavantage.co/query';
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
+const FMP_BASE = 'https://financialmodelingprep.com/api';
 
 const fs = require('fs');
 const path = require('path');
@@ -51,6 +53,8 @@ const apiCache = {
             saveCache();
       }
 };
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // ========== Helper Functions ==========
 
@@ -231,6 +235,119 @@ async function getTechnicalIndicators(ticker) {
       }
 }
 
+// ========== Financial Modeling Prep (FMP) API Functions ==========
+
+async function getFMPProfile(ticker) {
+      const cacheKey = `fmp_profile_${ticker}`;
+      if (apiCache.has(cacheKey)) return apiCache.get(cacheKey);
+
+      if (!FMP_KEY) return null;
+
+      try {
+            const response = await axios.get(`${FMP_BASE}/v3/profile/${ticker}`, {
+                  params: { apikey: FMP_KEY }
+            });
+
+            const data = response.data && response.data[0];
+            if (data) apiCache.set(cacheKey, data);
+            return data;
+      } catch (error) {
+            console.warn(`FMP profile fetch failed for ${ticker}:`, error.message);
+            return null;
+      }
+}
+
+async function getFMPFinancials(ticker, statementType = 'income-statement', limit = 5) {
+      const cacheKey = `fmp_${statementType}_${ticker}`;
+      if (apiCache.has(cacheKey)) return apiCache.get(cacheKey);
+
+      if (!FMP_KEY) return [];
+
+      try {
+            const response = await axios.get(`${FMP_BASE}/v3/${statementType}/${ticker}`, {
+                  params: { limit, apikey: FMP_KEY }
+            });
+
+            const data = response.data || [];
+            apiCache.set(cacheKey, data);
+            return data;
+      } catch (error) {
+            console.warn(`FMP ${statementType} fetch failed for ${ticker}:`, error.message);
+            return [];
+      }
+}
+
+async function getFMPRevenueSegments(ticker) {
+      const cacheKey = `fmp_segments_${ticker}`;
+      if (apiCache.has(cacheKey)) return apiCache.get(cacheKey);
+
+      if (!FMP_KEY) return null;
+
+      try {
+            // Fetch both product and geographic segmentation
+            const [product, geographic] = await Promise.all([
+                  axios.get(`${FMP_BASE}/v4/revenue-product-segmentation`, {
+                        params: { symbol: ticker, period: 'annual', structure: 'flat', apikey: FMP_KEY }
+                  }),
+                  axios.get(`${FMP_BASE}/v4/revenue-geographic-segmentation`, {
+                        params: { symbol: ticker, period: 'annual', structure: 'flat', apikey: FMP_KEY }
+                  })
+            ]);
+
+            const result = {
+                  product: product.data || [],
+                  geographic: geographic.data || []
+            };
+
+            apiCache.set(cacheKey, result);
+            return result;
+      } catch (error) {
+            console.warn(`FMP revenue segments fetch failed for ${ticker}:`, error.message);
+            return null;
+      }
+}
+
+async function getFMPEarningsTranscript(ticker) {
+      const cacheKey = `fmp_transcript_${ticker}`;
+      if (apiCache.has(cacheKey)) return apiCache.get(cacheKey);
+
+      if (!FMP_KEY) return null;
+
+      try {
+            // Get most recent transcript (year and quarter are optional for latest)
+            const response = await axios.get(`${FMP_BASE}/v3/earning_call_transcript/${ticker}`, {
+                  params: { limit: 1, apikey: FMP_KEY }
+            });
+
+            const data = response.data && response.data[0];
+            if (data) apiCache.set(cacheKey, data);
+            return data;
+      } catch (error) {
+            console.warn(`FMP transcript fetch failed for ${ticker}:`, error.message);
+            return null;
+      }
+}
+
+async function getFMPInstitutionalHolders(ticker) {
+      const cacheKey = `fmp_institutional_${ticker}`;
+      if (apiCache.has(cacheKey)) return apiCache.get(cacheKey);
+
+      if (!FMP_KEY) return [];
+
+      try {
+            const response = await axios.get(`${FMP_BASE}/v3/institutional-holder/${ticker}`, {
+                  params: { apikey: FMP_KEY }
+            });
+
+            const data = response.data || [];
+            apiCache.set(cacheKey, data);
+            return data;
+      } catch (error) {
+            console.warn(`FMP institutional holders fetch failed for ${ticker}:`, error.message);
+            return [];
+      }
+}
+
 // ========== Finnhub API Functions ==========
 
 async function getFinnhubProfile(ticker) {
@@ -374,6 +491,77 @@ function normalizeFinancialData(overview, incomeStatements, balanceSheets, cashF
       return financials;
 }
 
+function normalizeFMPFinancialData(incomeStatements, balanceSheets, cashFlows) {
+      const financials = {
+            annual: [],
+            lastQuarter: null
+      };
+
+      const years = Math.min(5, incomeStatements.length);
+
+      for (let i = 0; i < years; i++) {
+            const income = incomeStatements[i];
+            const balance = balanceSheets[i];
+            const cashFlow = cashFlows[i];
+
+            if (!income || !balance || !cashFlow) continue;
+
+            const year = parseInt(income.date.substring(0, 4));
+            const revenue = income.revenue / 1e9;
+            const grossProfit = income.grossProfit / 1e9;
+            const operatingIncome = income.operatingIncome / 1e9;
+            const netIncome = income.netIncome / 1e9;
+
+            const totalAssets = balance.totalAssets / 1e9;
+            const totalLiabilities = balance.totalLiabilities / 1e9;
+            const shareholderEquity = balance.totalStockholdersEquity / 1e9;
+            const cash = balance.cashAndCashEquivalents / 1e9;
+
+            const operatingCashFlow = cashFlow.operatingCashFlow / 1e9;
+            const capitalExpenditures = Math.abs(cashFlow.capitalExpenditure || 0) / 1e9;
+            const freeCashFlow = cashFlow.freeCashFlow / 1e9;
+
+            const eps = income.eps;
+            const shares = income.weightedAverageShsOut / 1e6;
+
+            const grossMargin = income.grossProfitRatio * 100;
+            const operatingMargin = income.operatingIncomeRatio * 100;
+            const netMargin = income.netIncomeRatio * 100;
+
+            const roe = shareholderEquity > 0 ? (netIncome / shareholderEquity) * 100 : 0;
+            const roic = income.roic * 100 || 0;
+
+            // Revenue growth (FMP provides previous period data sometimes, but let's calculate for consistency)
+            const prevRevenue = i < years - 1 ? incomeStatements[i + 1].revenue / 1e9 : null;
+            const revenueGrowth = calculateGrowth(revenue, prevRevenue);
+
+            financials.annual.push({
+                  year,
+                  revenue,
+                  grossProfit,
+                  operatingProfit: operatingIncome,
+                  netProfit: netIncome,
+                  eps,
+                  shares,
+                  operatingCashFlow,
+                  freeCashFlow,
+                  totalAssets,
+                  totalLiabilities,
+                  cash,
+                  equity: shareholderEquity,
+                  revenue_growth: revenueGrowth,
+                  grossMargin,
+                  operatingMargin,
+                  netMargin,
+                  roe,
+                  roic
+            });
+      }
+
+      financials.annual.sort((a, b) => b.year - a.year);
+      return financials;
+}
+
 // ========== Main Export Functions ==========
 
 async function getCompanyData(ticker) {
@@ -409,25 +597,82 @@ async function getCompanyData(ticker) {
                                     { year: 2022, revenue: 3.8, netProfit: 0.9, grossMargin: 63, operatingMargin: 22 }
                               ]
                         },
-                        timestamp: new Date().toISOString()
+                        timestamp: new Date().toISOString(),
+                        source: 'MOCK'
                   };
             }
 
             console.log(`Fetching comprehensive data for ${ticker}...`);
 
-            // Fetch all data in parallel
-            const [overview, incomeStatements, balanceSheets, cashFlows, finnhubProfile] = await Promise.all([
-                  getCompanyOverview(ticker),
-                  getIncomeStatement(ticker),
-                  getBalanceSheet(ticker),
-                  getCashFlow(ticker),
-                  getFinnhubProfile(ticker)
-            ]);
+            // 1. Try FMP first if key exists
+            if (FMP_KEY) {
+                  try {
+                        console.log(`[FMP] Fetching institutional data for ${ticker}...`);
+                        const [profile, income, balance, cashflow, segments, transcript, holders] = await Promise.all([
+                              getFMPProfile(ticker),
+                              getFMPFinancials(ticker, 'income-statement'),
+                              getFMPFinancials(ticker, 'balance-sheet-statement'),
+                              getFMPFinancials(ticker, 'cash-flow-statement'),
+                              getFMPRevenueSegments(ticker),
+                              getFMPEarningsTranscript(ticker),
+                              getFMPInstitutionalHolders(ticker)
+                        ]);
 
-            // Normalize financial data
+                        if (profile) {
+                              const financials = normalizeFMPFinancialData(income, balance, cashflow);
+
+                              return {
+                                    overview: {
+                                          name: profile.companyName,
+                                          ticker: profile.symbol,
+                                          description: profile.description,
+                                          sector: profile.sector,
+                                          industry: profile.industry,
+                                          exchange: profile.exchange,
+                                          currency: profile.currency,
+                                          country: profile.country,
+                                          marketCap: profile.mktCap / 1e9,
+                                          employees: profile.fullTimeEmployees,
+                                          logo: profile.image,
+                                          weburl: profile.website,
+                                          peRatio: profile.pe,
+                                          eps: profile.eps,
+                                          beta: profile.beta,
+                                          price: profile.price,
+                                          changes: profile.changes,
+                                          lastDiv: profile.lastDiv,
+                                          range: profile.range,
+                                          isin: profile.isin,
+                                          cusip: profile.cusip,
+                                          analystTargetPrice: profile.price + (profile.changes || 0), // Fallback if T1 isn't available
+                                    },
+                                    financials,
+                                    segments,
+                                    transcript,
+                                    institutionalHolders: holders,
+                                    timestamp: new Date().toISOString(),
+                                    source: 'FMP'
+                              };
+                        }
+                  } catch (fmpError) {
+                        console.warn('[FMP] Error, falling back to Alpha Vantage:', fmpError.message);
+                  }
+            }
+
+            // 2. Fallback to Alpha Vantage / Finnhub (Legacy Stack)
+            console.log(`[Legacy] Fetching data for ${ticker} via Alpha Vantage/Finnhub...`);
+            const overview = await getCompanyOverview(ticker);
+            await sleep(1000);
+            const incomeStatements = await getIncomeStatement(ticker);
+            await sleep(1000);
+            const balanceSheets = await getBalanceSheet(ticker);
+            await sleep(1000);
+            const cashFlows = await getCashFlow(ticker);
+
+            const finnhubProfile = await getFinnhubProfile(ticker);
+
             const financials = normalizeFinancialData(overview, incomeStatements, balanceSheets, cashFlows);
 
-            // Build company overview
             const companyOverview = {
                   name: overview.Name,
                   ticker: overview.Symbol,
@@ -437,48 +682,24 @@ async function getCompanyData(ticker) {
                   exchange: overview.Exchange,
                   currency: overview.Currency,
                   country: overview.Country,
-                  marketCap: parseFinancialValue(overview.MarketCapitalization) / 1e9, // In billions
+                  marketCap: parseFinancialValue(overview.MarketCapitalization) / 1e9,
                   employees: overview.FullTimeEmployees,
                   fiscalYearEnd: overview.FiscalYearEnd,
                   latestQuarter: overview.LatestQuarter,
-
-                  // Additional data from Finnhub if available
                   logo: finnhubProfile?.logo || null,
                   weburl: finnhubProfile?.weburl || overview.OfficialSite || null,
-                  phone: finnhubProfile?.phone || null,
-
-                  // Key metrics
                   peRatio: parseFinancialValue(overview.PERatio),
                   pegRatio: parseFinancialValue(overview.PEGRatio),
-                  bookValue: parseFinancialValue(overview.BookValue),
-                  dividendPerShare: parseFinancialValue(overview.DividendPerShare),
-                  dividendYield: parseFinancialValue(overview.DividendYield),
                   eps: parseFinancialValue(overview.EPS),
-                  revenuePerShareTTM: parseFinancialValue(overview.RevenuePerShareTTM),
-                  profitMargin: parseFinancialValue(overview.ProfitMargin),
-                  operatingMarginTTM: parseFinancialValue(overview.OperatingMarginTTM),
-                  returnOnAssetsTTM: parseFinancialValue(overview.ReturnOnAssetsTTM),
-                  returnOnEquityTTM: parseFinancialValue(overview.ReturnOnEquityTTM),
-                  revenueTTM: parseFinancialValue(overview.RevenueTTM) / 1e9,
-                  grossProfitTTM: parseFinancialValue(overview.GrossProfitTTM) / 1e9,
-
-                  // Analyst targets
                   analystTargetPrice: parseFinancialValue(overview.AnalystTargetPrice),
-
-                  // Trading info
-                  fiftyTwoWeekHigh: parseFinancialValue(overview['52WeekHigh']),
-                  fiftyTwoWeekLow: parseFinancialValue(overview['52WeekLow']),
-                  fiftyDayMovingAverage: parseFinancialValue(overview['50DayMovingAverage']),
-                  twoHundredDayMovingAverage: parseFinancialValue(overview['200DayMovingAverage']),
-
-                  // Beta
                   beta: parseFinancialValue(overview.Beta)
             };
 
             return {
                   overview: companyOverview,
                   financials,
-                  timestamp: new Date().toISOString()
+                  timestamp: new Date().toISOString(),
+                  source: 'Legacy'
             };
 
       } catch (error) {

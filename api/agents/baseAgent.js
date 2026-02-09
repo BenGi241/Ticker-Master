@@ -43,22 +43,8 @@ Before answering, THINK:
         }
         this.genAI = new GoogleGenerativeAI(this.apiKey);
         // Dynamic Model Selection based on Agent Role
-        // High Reasoning & Complexity -> Gemini 1.5 Pro
-        if (['Financial Modeler', 'Valuation Specialist', 'Moat Analyst', 'Management Analyst'].includes(name)) {
-            this.modelName = 'gemini-1.5-pro';
-        }
-        // High Speed & Volume -> Gemini 1.5 Flash
-        else if (['Technical Analyst', 'Revenue & Segment Analyst'].includes(name)) {
-            this.modelName = 'gemini-1.5-flash';
-        }
-        // Experimental/Latest Features -> Gemini 2.0 Flash Exp
-        else if (['Editor & QA Master'].includes(name)) {
-            this.modelName = 'gemini-2.0-flash';
-        }
-        // Default Balanced -> Gemini 2.0 Flash
-        else {
-            this.modelName = 'gemini-2.0-flash';
-        }
+        // Using gemini-2.0-flash for all agents as it is production-stable in v1beta and fast.
+        this.modelName = 'gemini-2.0-flash';
     }
 
     async generate(userPrompt) {
@@ -78,15 +64,20 @@ Before answering, THINK:
                 try {
                     return JSON.parse(jsonMatch[0]);
                 } catch (e) {
-                    console.error(`[${this.name}] JSON Parse Error:`, e.message);
-                    console.error(`[${this.name}] Raw Response:`, text);
-                    throw new Error(`Invalid JSON from ${this.name}`);
+                    console.warn(`[${this.name}] JSON Parse Error, returning raw text:`, e.message);
+                    return text;
                 }
             }
 
-            throw new Error(`No JSON found in response from ${this.name}`);
+            // Fallback to raw text if no JSON structure is found
+            return text;
         } catch (error) {
-            console.error(`[${this.name}] Error:`, error.message);
+            console.error(`[${this.name}] ❌ API Error Details:`, {
+                message: error.message,
+                status: error.status,
+                statusText: error.statusText,
+                details: error.response?.data || error.details || 'No additional details'
+            });
             throw error;
         }
     }

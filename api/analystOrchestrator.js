@@ -43,6 +43,11 @@ async function generateFullReport(ticker) {
             financialDataAPI.getTechnicalIndicators(ticker)
         ]);
 
+        if (!companyData || !companyData.overview || !companyData.financials) {
+            console.error(`[Orchestrator] Missing critical company data for ${ticker}. Aborting report generation.`);
+            throw new Error(`Critical data missing (Overview/Financials). This usually happens when API limits are hit.`);
+        }
+
         const { overview, financials } = companyData;
 
         // Step 2: Tiered Analyst Execution
@@ -51,7 +56,7 @@ async function generateFullReport(ticker) {
 
         const tier1Results = await Promise.allSettled([
             financialModeler.analyze(ticker, companyData),
-            revenueAnalyst.analyze(ticker, overview, financials, newsData),
+            revenueAnalyst.analyze(ticker, companyData),
             moatAnalyst.analyze(ticker, overview, companyData, []) // Peers can be added later
         ]);
 
@@ -61,7 +66,7 @@ async function generateFullReport(ticker) {
         const tier2Results = await Promise.allSettled([
             efficiencyOfficer.analyze(ticker, companyData), // NEW: Uses ROIC data
             valuationSpecialist.analyze(ticker, companyData, { price: overview.analystTargetPrice }),
-            managementAnalyst.analyze(ticker, insiderData, overview),
+            managementAnalyst.analyze(ticker, companyData, newsData),
             technicalAnalyst.analyze(ticker, technicalData)
         ]);
 
@@ -97,11 +102,13 @@ async function generateFullReport(ticker) {
         // 2. Define Report Structure
         const sections = [
             { id: 'executiveSummary', name: 'Executive Summary & Business Strategy' },
-            { id: 'revenueQuality', name: 'Revenue Quality & Segment Deconstruction' },
-            { id: 'financialHealth', name: 'Financial Health & Capital Efficiency' },
-            { id: 'competitiveMoat', name: 'Competitive Moat & Long-Term Durability' },
+            { id: 'revenueAnalysis', name: 'Revenue Quality & Segment Deconstruction' },
+            { id: 'financials', name: 'Financial Health & Capital Efficiency' },
+            { id: 'competition', name: 'Competitive Moat & Long-Term Durability' },
+            { id: 'management', name: 'Management & Governance' },
+            { id: 'checklist', name: 'Investment Checklist' },
             { id: 'valuation', name: 'Valuation, DCF Scenarios & Margin of Safety' },
-            { id: 'technicalSignals', name: 'Technical Analysis & Market Sentiment' },
+            { id: 'technical', name: 'Technical Analysis & Market Sentiment' },
             { id: 'conclusion', name: 'Final Conclusion & Actionable Recommendation' }
         ];
 
@@ -110,29 +117,147 @@ async function generateFullReport(ticker) {
             sections: {}
         };
 
-        // 3. Generate each section in sequence to maintain focus and depth
-        for (const section of sections) {
-            console.log(`[Orchestrator] Generating section: ${section.name}...`);
-            const content = await editorQA.generateSection(ticker, section.name, thesis, agentOutputs);
-            reportContent.sections[section.id] = content;
-        }
+        // 3. Generate all sections in parallel with retry logic
+        console.log(`[Orchestrator] 🚀 Starting parallel section generation (${sections.length} sections)...`);
+
+        const sectionGenerationPromises = sections.map(async (section, index) => {
+            // Stagger starts by 2.5 seconds each to avoid hitting API rate limits/quotas (increased for reliability)
+            await new Promise(resolve => setTimeout(resolve, index * 2500));
+
+            const sectionStartTime = Date.now();
+            let attempts = 0;
+            const maxRetries = 2;
+            let content = null;
+
+            console.log(`[Orchestrator] 📝 Starting section: ${section.name}...`);
+
+            while (attempts <= maxRetries && !content) {
+                attempts++;
+                try {
+                    if (attempts > 1) {
+                        console.log(`[Orchestrator] ⚠️  Retry attempt ${attempts}/${maxRetries} for section: ${section.name}`);
+                    }
+
+                    content = await editorQA.generateSection(ticker, section.name, thesis, agentOutputs);
+
+                    if (!content || content.trim().length < 100) {
+                        throw new Error(`Section content too short (${content?.length || 0} chars)`);
+                    }
+
+                    const duration = ((Date.now() - sectionStartTime) / 1000).toFixed(2);
+                    const wordCount = content.split(/\s+/).length;
+
+                    console.log(`[Orchestrator] ✅ Section "${section.name}" completed in ${duration}s (${wordCount} words)`);
+
+                    return {
+                        sectionId: section.id,
+                        content: content,
+                        metrics: {
+                            section: section.name,
+                            duration: duration,
+                            wordCount: wordCount,
+                            attempts: attempts,
+                            success: true
+                        }
+                    };
+
+                } catch (err) {
+                    console.error(`[Orchestrator] ❌ Error generating section "${section.name}" (attempt ${attempts}):`, err.message);
+
+                    if (attempts > maxRetries) {
+                        content = `[Section generation failed after ${maxRetries} retries. Error: ${err.message}]\n\nPossible cause: API limit reached or safety filter. Please regenerate this report in 1-2 minutes.`;
+
+                        console.error(`[Orchestrator] 🚨 CRITICAL: Section "${section.name}" failed permanently.`);
+
+                        return {
+                            sectionId: section.id,
+                            content: content,
+                            metrics: {
+                                section: section.name,
+                                duration: ((Date.now() - sectionStartTime) / 1000).toFixed(2),
+                                wordCount: 0,
+                                attempts: attempts,
+                                success: false,
+                                error: err.message
+                            }
+                        };
+                    } else {
+                        const waitTime = Math.pow(2, attempts) * 1000;
+                        console.log(`[Orchestrator] ⏳ Waiting ${waitTime}ms before retry...`);
+                        await new Promise(resolve => setTimeout(resolve, waitTime));
+                    }
+                }
+            }
+        });
+
+        // Wait for all sections to complete in parallel
+        const parallelStartTime = Date.now();
+        const sectionResults = await Promise.allSettled(sectionGenerationPromises);
+        const parallelDuration = ((Date.now() - parallelStartTime) / 1000).toFixed(2);
+
+        console.log(`[Orchestrator] ⚡ All sections completed in ${parallelDuration}s (parallel execution)`);
+
+        // Process results
+        const sectionMetrics = [];
+        sectionResults.forEach((result, index) => {
+            if (result.status === 'fulfilled' && result.value) {
+                const { sectionId, content, metrics } = result.value;
+                reportContent.sections[sectionId] = content;
+                sectionMetrics.push(metrics);
+            } else {
+                const section = sections[index];
+                console.error(`[Orchestrator] 🚨 Section "${section.name}" promise rejected:`, result.reason);
+                reportContent.sections[section.id] = `[Section generation failed: ${result.reason?.message || 'Unknown error'}]`;
+                sectionMetrics.push({
+                    section: section.name,
+                    duration: '0',
+                    wordCount: 0,
+                    attempts: 0,
+                    success: false,
+                    error: result.reason?.message || 'Promise rejected'
+                });
+            }
+        });
+
+        const totalGenerationTime = sectionMetrics.reduce((sum, m) => sum + parseFloat(m.duration), 0).toFixed(2);
+        const totalWords = sectionMetrics.reduce((sum, m) => sum + m.wordCount, 0);
+
+        console.log(`[Orchestrator] 🎉 Report generation complete!`);
+        console.log(`[Orchestrator] 📈 Total time: ${totalGenerationTime}s | Total words: ${totalWords}`);
+        console.log(`[Orchestrator] 📊 Section breakdown:`, sectionMetrics);
 
         // 4. Assemble high-level headers
-        const header = {
-            ticker: ticker,
-            companyName: overview.Name || ticker,
-            rating: agentOutputs.valuator?.recommendation || "Hold",
-            targetPrice: agentOutputs.valuator?.targetPrice || 0,
-            currentPrice: overview.analystTargetPrice || 0, // Fallback
-            marketCap: `${(parseFloat(overview.MarketCapitalization) / 1e9).toFixed(2)}B`
+        const currentPrice = parseFloat(overview.analystTargetPrice) || 0;
+        const targetPrice = agentOutputs.valuator?.targetPrice || 0;
+        const upside = currentPrice > 0 ? `${(((targetPrice - currentPrice) / currentPrice) * 100).toFixed(1)}%` : "0%";
+
+        console.log(`[Orchestrator] 🎯 Target Price: ${targetPrice}, Current: ${currentPrice}, Upside: ${upside}`);
+
+        const result = {
+            header: {
+                ticker: ticker,
+                companyName: overview.Name || ticker,
+                rating: agentOutputs.valuator?.recommendation || "Hold",
+                targetPrice: targetPrice,
+                currentPrice: currentPrice,
+                upside: upside,
+                marketCap: `${(parseFloat(overview.MarketCapitalization) / 1e9).toFixed(2)}B`
+            },
+            ...reportContent.sections, // Spread sections (executiveSummary, etc) to top level
+            thesis: reportContent.thesis,
+            sections: reportContent.sections, // Keep for legacy/deep-dive access
+            rawAgentOutputs: agentOutputs,
+            metadata: {
+                timestamp: new Date().toISOString(),
+                generationTime: totalGenerationTime,
+                totalWords: totalWords,
+                sectionMetrics: sectionMetrics,
+                parallelExecutionTime: parallelDuration
+            }
         };
 
-        return {
-            header,
-            ...reportContent,
-            rawAgentOutputs: agentOutputs,
-            timestamp: new Date().toISOString()
-        };
+        console.log(`[Orchestrator] 📤 Final Report Keys:`, Object.keys(result));
+        return result;
 
     } catch (error) {
         console.error(`[Orchestrator] Critical Error:`, error.message);

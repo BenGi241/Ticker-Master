@@ -57,9 +57,15 @@ export const analyzeCompany = async (ticker) => {
       let companyData = null;
       try {
             companyData = await fetchCompanyData(ticker);
+            if (!companyData || !companyData.overview) {
+                  throw new Error("Invalid company data structure");
+            }
       } catch (error) {
             console.error("Company Data fetch failed:", error);
-            companyData = { name: ticker, description: "Data unavailable" };
+            companyData = {
+                  overview: { name: ticker, ticker: ticker, description: "Data unavailable" },
+                  financials: { annual: [] }
+            };
       }
 
       // 3. Fetch Quote (Non-Critical, often hits limits)

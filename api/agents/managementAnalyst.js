@@ -41,10 +41,26 @@ Respond ONLY with valid JSON.`;
     super('Management Analyst', systemPrompt);
   }
 
-  async analyze(ticker, insiderData, companyOverview) {
-    const userPrompt = `Analyze management at ${ticker} (${companyOverview.name}).
+  async analyze(ticker, companyData, newsData) {
+    const { overview, insiderData, transcript } = companyData;
+
+    let sourceMaterial = "";
+    if (transcript) {
+      sourceMaterial = `
+LATEST EARNINGS CALL TRANSCRIPT (Management Narrative):
+Quarter: ${transcript.quarter}, Year: ${transcript.year}
+Content: ${transcript.content.substring(0, 15000)}... [TRUNCATED]
+`;
+    } else {
+      sourceMaterial = `RECENT NEWS CONTEXT: ${JSON.stringify(newsData?.slice(0, 5), null, 2)}`;
+    }
+
+    const userPrompt = `Ticker: ${ticker}
+Company: ${overview.name}
+
+${sourceMaterial}
 Insider Data: ${JSON.stringify(insiderData, null, 2)}
-Overview: ${companyOverview.description}
+Overview: ${overview.description}
 
 **CRITICAL: PARAGRAPH-BASED ANALYSIS**
 Write cohesive narratives, not bullet point lists.

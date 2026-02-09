@@ -84,31 +84,188 @@ RETURN ONLY THE THESIS PARAGRAPH.`;
   }
 
   async generateSection(ticker, sectionName, thesis, agentOutputs) {
+    // Section-specific templates with detailed guidance
+    const sectionTemplates = {
+      'Executive Summary & Business Strategy': {
+        wordTarget: '500-700',
+        focus: 'Business model, competitive positioning, and core investment thesis',
+        structure: `
+1. Opening paragraph: What does this company do? (Plain English, no jargon)
+2. Second paragraph: How do they make money? What's their moat?
+3. Third paragraph: Why is the market mispricing this? What's the catalyst?`,
+        antiPatterns: [
+          'Do NOT use generic phrases like "leading provider" without proof',
+          'Do NOT list products without explaining WHY they matter to revenue',
+          'Do NOT state the thesis without connecting it to operational reality'
+        ],
+        dataFocus: ['moatAnalyst', 'revenueAnalyst', 'valuator']
+      },
+      'Revenue Quality & Segment Deconstruction': {
+        wordTarget: '400-600',
+        focus: 'Segment-level revenue drivers, pricing power, and growth sustainability',
+        structure: `
+1. Opening: Deconstruct total revenue into segments. Which segments are growing and why?
+2. Middle: Is growth driven by volume or price? Prove pricing power with data.
+3. Closing: Is this growth sustainable? What are the macro headwinds/tailwinds?`,
+        antiPatterns: [
+          'Do NOT just list segment percentages without explaining IMPLICATIONS',
+          'Do NOT ignore the difference between organic and inorganic growth',
+          'Do NOT skip the "So What?" - connect growth quality to valuation'
+        ],
+        dataFocus: ['revenueAnalyst', 'financialModeler']
+      },
+      'Financial Health & Capital Efficiency': {
+        wordTarget: '500-700',
+        focus: 'ROIC, FCF quality, balance sheet strength, and capital allocation',
+        structure: `
+1. Opening: Start with ROIC. What does it tell us about capital efficiency?
+2. Middle: Analyze FCF vs Net Income. Are earnings real cash or accounting fiction?
+3. Closing: Balance sheet health. Debt levels, interest coverage, financial flexibility.`,
+        antiPatterns: [
+          'Do NOT state "ROIC is X%" without explaining WHY and what it means for reinvestment',
+          'Do NOT ignore red flags from the Financial Modeler',
+          'Do NOT skip the connection between ROIC and moat durability'
+        ],
+        dataFocus: ['financialModeler', 'efficiencyOfficer']
+      },
+      'Competitive Moat & Long-Term Durability': {
+        wordTarget: '400-600',
+        focus: 'Structural advantages, moat type, and long-term defensibility',
+        structure: `
+1. Opening: What type of moat does this company have? (Network effects, switching costs, scale, intangibles)
+2. Middle: Prove it with data. How does the moat show up in margins, customer retention, or pricing power?
+3. Closing: Is the moat widening or narrowing? What threatens it?`,
+        antiPatterns: [
+          'Do NOT claim a moat exists without quantitative proof',
+          'Do NOT confuse temporary competitive advantages with durable moats',
+          'Do NOT ignore threats to the moat (disruption, regulation, competition)'
+        ],
+        dataFocus: ['moatAnalyst', 'efficiencyOfficer']
+      },
+      'Valuation, DCF Scenarios & Margin of Safety': {
+        wordTarget: '500-700',
+        focus: 'DCF analysis, scenario planning, and margin of safety assessment',
+        structure: `
+1. Opening: Present the DCF base case. What are the key assumptions (growth, margins, WACC)?
+2. Middle: Scenario analysis. What happens in bull/bear cases? What's the range of outcomes?
+3. Closing: Margin of safety. At current price, what's the risk/reward? Is there a margin for error?`,
+        antiPatterns: [
+          'Do NOT present a target price without explaining the assumptions behind it',
+          'Do NOT ignore the Valuator\'s scenario analysis',
+          'Do NOT skip the "margin of safety" concept - this is critical for risk management'
+        ],
+        dataFocus: ['valuator', 'valuationSpecialist']
+      },
+      'Technical Analysis & Market Sentiment': {
+        wordTarget: '300-500',
+        focus: 'Price action, technical indicators, and sentiment alignment with fundamentals',
+        structure: `
+1. Opening: What is the chart telling us? Trend, support/resistance, momentum.
+2. Middle: Do technical signals align with the fundamental thesis?
+3. Closing: Timing verdict. Is this a good entry point or should we wait?`,
+        antiPatterns: [
+          'Do NOT just list indicator values without interpretation',
+          'Do NOT ignore divergences between technicals and fundamentals',
+          'Do NOT make timing calls without acknowledging uncertainty'
+        ],
+        dataFocus: ['technicalAnalyst']
+      },
+      'Final Conclusion & Actionable Recommendation': {
+        wordTarget: '300-400',
+        focus: 'Risk/reward synthesis and specific action instruction',
+        structure: `
+1. Single powerful paragraph: Synthesize the entire analysis into a risk/reward statement.
+2. Action instruction: Be specific. "Accumulate below $X" or "Wait for Y catalyst" or "Avoid until Z improves".`,
+        antiPatterns: [
+          'Do NOT be vague. "Buy" is not enough - give specific guidance',
+          'Do NOT ignore the risks. Acknowledge what could go wrong',
+          'Do NOT write multiple paragraphs - this should be ONE punchy conclusion'
+        ],
+        dataFocus: ['valuator', 'all']
+      }
+    };
+
+    const template = sectionTemplates[sectionName] || {
+      wordTarget: '400-600',
+      focus: 'Comprehensive analysis',
+      structure: 'Write 2-3 analytical paragraphs',
+      antiPatterns: ['Avoid bullet points', 'Explain implications'],
+      dataFocus: ['all']
+    };
+
+    // Filter relevant agent outputs to reduce token usage
+    const relevantOutputs = this._filterRelevantContext(agentOutputs, template.dataFocus);
+
     const userPrompt = `Ticker: ${ticker}
 GLOBAL INVESTMENT THESIS: ${thesis}
 
-RAW NARRATIVE OUTPUTS:
-${JSON.stringify(agentOutputs, null, 2)}
+RELEVANT SPECIALIST OUTPUTS:
+${JSON.stringify(relevantOutputs, null, 2)}
 
-TASK:
-Write the **${sectionName}** chapter of this Initiation of Coverage report.
+═══════════════════════════════════════════════════════════════
+TASK: Write the **${sectionName}** chapter
+═══════════════════════════════════════════════════════════════
 
-CRITICAL INSTRUCTIONS:
-1. **Density:** Write 2-3 substantial paragraphs (400-600 words for this section).
-2. **Alignment:** Ensure the analysis supports the Global Thesis.
-3. **Depth:** Use the specialist data to explain the "Why" behind the "What".
-4. **Style:** NO bullet points for analysis. Use sophisticated transitions.
-5. **So What?:** Every fact must have an investor consequence.
+📊 SECTION FOCUS: ${template.focus}
 
-**CHAPTER TEMPLATES:**
-- If "Executive Summary": Focus on the business model and thesis.
-- If "Revenue Quality": Deconstruct segment drivers and pricing power.
-- If "Financial Health": Probe ROIC, FCF quality, and balance sheet risk.
-- If "Competitive Moat": Prove durability with structural advantages.
-- If "Valuation": Synthesize DCF/PEGY into a margin of safety argument.
+📏 TARGET LENGTH: ${template.wordTarget} words (2-3 substantial paragraphs)
 
-GENERATE ONLY THE NARRATIVE CONTENT FOR THIS SECTION (as text or partial JSON as requested).`;
+🏗️ RECOMMENDED STRUCTURE:
+${template.structure}
+
+⚠️ ANTI-PATTERNS TO AVOID:
+${template.antiPatterns.map((ap, i) => `${i + 1}. ${ap}`).join('\n')}
+
+═══════════════════════════════════════════════════════════════
+CRITICAL RULES (NON-NEGOTIABLE):
+═══════════════════════════════════════════════════════════════
+
+1. **NO BULLET POINTS** for analysis. Only use bullets for data lists (if absolutely necessary).
+2. **SO WHAT? RULE**: Every metric MUST be followed by its investor implication.
+   - ❌ BAD: "ROIC is 50%"
+   - ✅ GOOD: "At 50%, the ROIC demonstrates exceptional capital efficiency, suggesting the company's moat allows it to reinvest retained earnings at rates disproportionately higher than its cost of capital."
+
+3. **DENSE PROSE**: Write like a Wall Street analyst, not a blog post. Sophisticated, analytical, skeptical.
+
+4. **TRANSITIONS**: Connect ideas smoothly. Use phrases like:
+   - "This operational efficiency provides the necessary cushion for..."
+   - "However, this strength is offset by..."
+   - "More importantly, the data reveals..."
+
+5. **ALIGNMENT**: Every sentence should support or challenge the Global Thesis.
+
+6. **DEPTH OVER BREADTH**: Better to deeply analyze 2 key points than superficially mention 10.
+
+═══════════════════════════════════════════════════════════════
+
+GENERATE ONLY THE NARRATIVE CONTENT FOR THIS SECTION (plain text, dense paragraphs).
+Do NOT include section headers or titles - just the analytical prose.`;
+
     return this.generate(userPrompt);
+  }
+
+  _filterRelevantContext(agentOutputs, dataFocus) {
+    if (dataFocus.includes('all')) {
+      return agentOutputs;
+    }
+
+    const filtered = {};
+    for (const agent of dataFocus) {
+      if (agentOutputs[agent]) {
+        // Shallow copy to avoid mutating the original
+        const data = { ...agentOutputs[agent] };
+
+        // Optimization: Remove extremely large raw data chunks if not the main focus
+        // e.g., if we are the Moat Analyst, we don't need the full Financial Modeler's transaction history
+        if (agent === 'financialModeler' && !dataFocus.includes('financialModeler')) {
+          delete data.rawData;
+          delete data.fullTranscripts;
+        }
+
+        filtered[agent] = data;
+      }
+    }
+    return filtered;
   }
 
   async finalizeReport(ticker, agentOutputs) {
