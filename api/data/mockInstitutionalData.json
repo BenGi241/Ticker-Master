@@ -1,0 +1,185 @@
+{
+    "header": {
+        "ticker": "MOCK",
+        "companyName": "TechNova Systems",
+        "rating": "Strong Buy",
+        "targetPrice": 245.00,
+        "currentPrice": 185.50,
+        "upside": "+32%",
+        "marketCap": "85.4B"
+    },
+    "executiveSummary": {
+        "plainEnglish": "TechNova is a cloud infrastructure provider that helps large enterprises migrate from legacy on-premise servers to hybrid cloud environments. They act as the 'plumbing' for modern digital transformation.",
+        "revenueModel": "85% Recurring Revenue (SaaS Subscriptions), 15% One-time Professional Services. High retention rates drive predictable cash flow.",
+        "moat": {
+            "type": "High Switching Costs & Network Effect",
+            "analysis": "Once installed, TechNova becomes the operating system for the client's data. Ripping it out would cost millions in downtime.",
+            "proof": "NOPAT Margin: 28% (vs Sector Avg 15%). Retention Rate: 98%."
+        },
+        "thesis": {
+            "recommendation": "Strong Buy",
+            "reason": "Market is mispricing the margin expansion from the new 'Cloud-Native' product line. Competitors are 2 years behind.",
+            "trigger": "Q3 Earnings beat expected due to accelerated enterprise adoption."
+        },
+        "insight": "Investor Insight: This is a platform play, not a product play. Margins will expand as they cross-sell new modules."
+    },
+    "revenueAnalysis": {
+        "quarterlySummary": {
+            "revenue": "$4.5B",
+            "grossProfit": "$3.2B",
+            "operatingIncome": "$1.1B",
+            "trend": "⬆️ Accelerating"
+        },
+        "segments": [
+            {
+                "name": "Cloud Platform",
+                "revenue": "$3.1B",
+                "weight": "68%",
+                "growth": "+42% YoY",
+                "trend": "⬆️ Hyper-Growth",
+                "margin": "78%",
+                "quality": "Volume-driven (New Logos)"
+            },
+            {
+                "name": "Legacy Hardware",
+                "revenue": "$1.4B",
+                "weight": "32%",
+                "growth": "-5% YoY",
+                "trend": "⬇️ Declining",
+                "margin": "45%",
+                "quality": "Price-driven (Maintenance)"
+            }
+        ],
+        "geography": [
+            {
+                "region": "North America",
+                "growth": "+25%",
+                "weight": "60%"
+            },
+            {
+                "region": "EMEA",
+                "growth": "+15%",
+                "weight": "25%"
+            },
+            {
+                "region": "APAC",
+                "growth": "+40%",
+                "weight": "15%"
+            }
+        ],
+        "growthQuality": {
+            "text": "Growth is high-quality: 80% comes from volume (new customers + usage), only 20% from price increases.",
+            "pricingPower": "Strong - Passed 5% inflation adjustment with 0% churn."
+        },
+        "macroImpact": "Neutral to FX. Inflation is a tailwind as it forces customers to automate (using TechNova).",
+        "bottomLine": "Investor Insight: The mix shift to Cloud (78% margin) is the real story here, not just the topline growth."
+    },
+    "financials": {
+        "roic": 24.5,
+        "wacc": 8.5,
+        "economicSpread": 16.0,
+        "netDebtToEV": 1.2,
+        "fcfMargin": 28.5,
+        "pegy": 1.1,
+        "revenueGrowth": 18.5
+    },
+    "checklist": {
+        "criteria": [
+            {
+                "item": "Consistent Revenue Growth (>10%)",
+                "status": true
+            },
+            {
+                "item": "ROIC > WACC",
+                "status": true
+            },
+            {
+                "item": "Positive & Growing Free Cash Flow",
+                "status": true
+            },
+            {
+                "item": "Founder/CEO with Significant Stake",
+                "status": true
+            },
+            {
+                "item": "No Significant Dilution (<2%)",
+                "status": true
+            },
+            {
+                "item": "Strong Balance Sheet (Net Debt/EBITDA < 3)",
+                "status": true
+            }
+        ],
+        "insight": "Investor Insight: Checks 6/6 boxes. A rare 'Perfect Prime' quality score."
+    },
+    "competition": {
+        "peers": [
+            {
+                "name": "CompCloud",
+                "pe": 45.2,
+                "evSales": 12.5,
+                "growth": "52%"
+            },
+            {
+                "name": "OldTech Inc",
+                "pe": 15.4,
+                "evSales": 3.2,
+                "growth": "4%"
+            },
+            {
+                "name": "TechNova (MOCK)",
+                "pe": 22.5,
+                "evSales": 8.4,
+                "growth": "18.5%"
+            }
+        ],
+        "verdict": "Trading at a 50% discount to the cloud leader, but at a premium to value peers.",
+        "insight": "Investor Insight: Market still prices it as a hardware company rather than a growing software company."
+    },
+    "management": {
+        "skinInGame": "CEO holds $150M in stock (20x base salary). Insider purchases of $2M in the last quarter.",
+        "allocation": "70% R&D Investment (Capex), 20% Buybacks, 10% Dividends.",
+        "insight": "Investor Insight: Management incentivized on FCF/Share growth, full alignment with shareholders."
+    },
+    "valuation": {
+        "dcf": {
+            "base": 245,
+            "bear": 190,
+            "bull": 280,
+            "current": 185.50
+        },
+        "consensus": {
+            "average": 230,
+            "high": 275,
+            "low": 195,
+            "source": "FactSet Consensus (18 Analysts)"
+        },
+        "insight": "Investor Insight: 32% margin of safety in base case. Risk/Reward ratio of 1:4 favoring long."
+    },
+    "technical": {
+        "signals": [
+            {
+                "indicator": "SMA 200",
+                "status": "Positive",
+                "value": "Price > SMA200"
+            },
+            {
+                "indicator": "RSI (14)",
+                "status": "Neutral",
+                "value": "58 (Not Overbought)"
+            },
+            {
+                "indicator": "MACD",
+                "status": "Positive",
+                "value": "Golden Cross"
+            }
+        ],
+        "insight": "Investor Insight: Stock in primary uptrend. Breakout above $190 would be further technical confirmation."
+    },
+    "conclusion": {
+        "verdict": "Strong Buy",
+        "punchline": "Rare opportunity to buy a quality business at a 'reasonable' price before market perception shifts.",
+        "catalyst": "Q3 Earnings (Nov) - Expectation to cross 50% cloud revenue threshold.",
+        "insight": "Action Required: Accumulate at market price, add on dips to $180."
+    }
+}

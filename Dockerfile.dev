@@ -1,0 +1,30 @@
+# ==========================================
+# Development Dockerfile for Ticker-Master
+# ==========================================
+
+FROM node:20-alpine AS development
+
+# Install development tools
+RUN apk add --no-cache git dumb-init
+
+WORKDIR /app
+
+# Copy all package files
+COPY package*.json ./
+COPY client/package*.json ./client/
+
+# Install all dependencies (including dev dependencies)
+RUN npm install
+RUN cd client && npm install
+
+# Copy source code
+COPY . .
+
+# Expose ports
+EXPOSE 3000 5173
+
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start both backend and frontend in dev mode
+CMD ["sh", "-c", "npm run dev & cd client && npm run dev"]
