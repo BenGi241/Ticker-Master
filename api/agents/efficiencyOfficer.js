@@ -23,18 +23,29 @@ class EfficiencyOfficer extends BaseAgent {
                 financialDataAPI.getEVMultiplesTrend(ticker, 5)
             ]);
 
-            const prompt = `You are an Efficiency & Quality Control Analyst.
-Your task is to rigorously evaluate the company against a strict "Investment Checklist".
+            const prompt = `You are an Efficiency & Quality Control Analyst at a top-tier investment firm.
+Your task is to evaluate capital efficiency and write NARRATIVE ANALYSIS for each quality metric.
 
 **Company:** ${ticker}
 **Data:**
 - ROIC: ${roicData?.roic || 'N/A'}%
 - Economic Spread: ${economicSpread?.economicSpread || 'N/A'}%
 - Net Debt/EV: ${netDebtEV?.current?.ratio || 'N/A'}%
-- Growth: (Derive from context if available)
 
-**Task:**
-Complete the following Boolean Checklist. If data is missing for a specific item, make a conservative estimate or set to false.
+**CRITICAL: NARRATIVE-DRIVEN CHECKLIST**
+For EACH checklist item, you must provide:
+1. The boolean status (pass/fail)
+2. A 2-3 sentence narrative explaining:
+   - What the data shows
+   - Why it matters for capital efficiency
+   - What it reveals about management quality
+
+**MANDATORY ANALYSIS:**
+Write a dedicated 4-5 sentence "Capital Efficiency Narrative" that synthesizes:
+- Overall ROIC quality and trend
+- Economic spread (ROIC minus cost of capital)
+- Whether the company creates or destroys shareholder value
+- Management's capital allocation track record
 
 **Checklist Criteria:**
 1. Revenue Growth > 12% (or >6% stable)
@@ -47,25 +58,52 @@ Complete the following Boolean Checklist. If data is missing for a specific item
 Return ONLY valid JSON in this exact format:
 {
   "checklist": [
-      { "item": "Rev Growth > 12%", "status": true/false },
-      { "item": "ROIC > 15%", "status": true/false },
-      { "item": "FCF Growth > 15%", "status": true/false },
-      { "item": "EPS Growth > 15%", "status": true/false },
-      { "item": "Share Dilution < 2%", "status": true/false },
-      { "item": "Net Debt/FCF < 5x", "status": true/false }
+      { 
+        "item": "Rev Growth > 12%", 
+        "status": true/false,
+        "narrative": "<2-3 sentences: What does the data show? Why does this matter? What does it reveal about the business?>"
+      },
+      { 
+        "item": "ROIC > 15%", 
+        "status": true/false,
+        "narrative": "<2-3 sentences explaining ROIC quality and capital efficiency>"
+      },
+      { 
+        "item": "FCF Growth > 15%", 
+        "status": true/false,
+        "narrative": "<2-3 sentences on free cash flow generation quality>"
+      },
+      { 
+        "item": "EPS Growth > 15%", 
+        "status": true/false,
+        "narrative": "<2-3 sentences analyzing earnings growth vs revenue growth>"
+      },
+      { 
+        "item": "Share Dilution < 2%", 
+        "status": true/false,
+        "narrative": "<2-3 sentences on shareholder dilution impact>"
+      },
+      { 
+        "item": "Net Debt/FCF < 5x", 
+        "status": true/false,
+        "narrative": "<2-3 sentences on leverage and financial health>"
+      }
   ],
-  "insight": "Investor Insight: [Pass/Fail summary on 'Quality Company' standards]"
+  "capitalEfficiencyNarrative": "<4-5 sentence paragraph synthesizing ROIC, economic spread, and value creation. Explain whether management is a good capital allocator.>",
+  "overallVerdict": "Excellent|Good|Moderate|Poor",
+  "investorInsight": "<2-3 sentences: What is the efficiency verdict and what should investors watch?>"
 }`;
 
             const result = await this.generateContent(prompt);
 
-            // Ensure Hebrew insight exists
-            if (!result.hebrewInsight && result.insight) {
-                result.hebrewInsight = result.insight; // Use the generated insight
+            // Ensure investorInsight exists
+            if (!result.investorInsight && result.insight) {
+                result.investorInsight = result.insight;
             }
-            // Fallback if model didn't return insight key or hebrewInsight
-            if (!result.hebrewInsight) {
-                result.hebrewInsight = `תובנה למשקיע: ${this.generateDefaultInsight(roicData, economicSpread)}`;
+
+            // Ensure capitalEfficiencyNarrative exists
+            if (!result.capitalEfficiencyNarrative) {
+                result.capitalEfficiencyNarrative = this.generateDefaultEfficiencyNarrative(roicData, economicSpread);
             }
 
             return result;
@@ -74,8 +112,9 @@ Return ONLY valid JSON in this exact format:
             console.error(`[Efficiency Officer] Error:`, error.message);
             return {
                 checklist: [],
-                insight: "Efficiency analysis unavailable due to insufficient data.",
-                hebrewInsight: "תובנה למשקיע: נתונים חסרים לניתוח יעילות הון"
+                capitalEfficiencyNarrative: "Capital efficiency analysis unavailable due to insufficient data.",
+                overallVerdict: "Insufficient Data",
+                investorInsight: "Efficiency analysis unavailable due to insufficient data."
             };
         }
     }
@@ -100,16 +139,16 @@ Return ONLY valid JSON in this exact format:
 - Improving Efficiency Trend: ${scorecard.improvingEfficiency}`;
     }
 
-    generateDefaultInsight(roicData, economicSpread) {
+    generateDefaultEfficiencyNarrative(roicData, economicSpread) {
         const roic = parseFloat(roicData?.roic || 0);
         const spread = parseFloat(economicSpread?.economicSpread || 0);
 
         if (spread > 10) {
-            return "החברה יוצרת ערך כלכלי משמעותי - אינדיקציה חזקה לחפיר תחרותי בר קיימא";
+            return `The company demonstrates exceptional capital efficiency with ROIC of ${roic}% generating an economic spread of ${spread}%. This substantial value creation above the cost of capital indicates a durable competitive moat and superior management execution.`;
         } else if (spread > 0) {
-            return "החברה מצליחה להכות את עלות ההון, אך המרווח הכלכלי מתון - יש לעקוב אחר מגמות";
+            return `The company achieves positive economic value creation with ROIC of ${roic}% exceeding its cost of capital by ${spread}%. While this indicates acceptable capital allocation, the modest spread suggests limited pricing power or competitive advantages.`;
         } else {
-            return "החברה משמידה ערך כלכלי - סימן אזהרה משמעותי למשקיעים";
+            return `The company is destroying shareholder value with ROIC of ${roic}% falling short of its cost of capital. This negative economic spread of ${spread}% is a critical red flag indicating either structural competitive disadvantages or poor capital allocation decisions by management.`;
         }
     }
 }

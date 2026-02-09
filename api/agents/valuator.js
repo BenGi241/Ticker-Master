@@ -47,31 +47,32 @@ class Valuator extends BaseAgent {
 ${revenueData?.analysis?.substring(0, 200) || 'N/A'}
 
 **Task:**
-Provide a **concise valuation assessment** (300-350 words) covering:
+Provide a **comprehensive narrative valuation assessment** (350-450 words) that avoids generic lists.
 
-1. **DCF Scenarios** (Conceptual):
-   - **Base Case:** Assume moderate growth continuation
-   - **Bull Case:** Best-case scenario (strong execution + favorable market)
-   - **Bear Case:** Conservative scenario (headwinds + competition)
-   - Provide estimated intrinsic value range (e.g., $150-$220)
+1. **DCF Rationale (The "Why"):**
+   - Explain the narrative behind your **Base, Bull, and Bear** cases.
+   - What specific operational improvements or market shifts drive the Bull case?
+   - What structural risks create the Bear case floor?
+   - Justify the estimated intrinsic value range (e.g., $150-$220) in the context of the company's moat.
 
-2. **P/EGY Interpretation:**
-   - Is the current P/EGY ratio justified by growth quality?
-   - How does it compare to sector peers?
+2. **P/EGY Interpretation & Growth Quality:**
+   - Is the current P/EGY ratio justified by the ROIC and Revenue Growth quality findings from Tier 1/2?
+   - Explain the connection between capital efficiency and the valuation multiple.
+   - How does this multiple compare to the historical median and peer group?
 
-3. **Valuation Gap:**
-   - Current Price vs. Your Fair Value estimate
-   - Upside/Downside % potential
+3. **Valuation Gap & Margin of Safety:**
+   - Clearly state the gap between Current Price and Fair Value.
+   - Describe whether this gap provides a sufficient "Margin of Safety" for institutional investors.
 
-4. **Analyst Consensus Check:**
-   - Does Wall Street consensus align with your view?
-   - Any major discrepancies to note?
+4. **Sentiment & Consensus Check:**
+   - Narrative analysis of where you differ from Wall Street consensus.
+   - Are you more skeptical of margins or more optimistic about growth than the Street?
 
 **Critical Requirements:**
-- If DCF data is incomplete, state: "DCF מוגבל בשל נתונים חסרים - נדרש אומדן אנליסטי"
-- Use ONLY provided data - NO external assumptions
-- End with: "**תובנה למשקיע:** [Hebrew actionable insight about valuation]"
-- Be skeptical of overly optimistic growth projections
+- Use dense, analytical paragraphs. NO bullet points.
+- If DCF data is incomplete, explain specifically WHAT is missing and how it impacts the range.
+- Use transition words to connect efficiency findings to valuation multiples.
+- End with: "**תובנה למשקיע:** [Strategic Hebrew actionable insight about the entry price and valuation risk]"
 
 Return ONLY valid JSON in this exact format:
 {
@@ -79,10 +80,21 @@ Return ONLY valid JSON in this exact format:
     "baseCase": 185,
     "bullCase": 220,
     "bearCase": 150,
-    "methodology": "Brief explanation of assumptions"
+    "narrative": "<3-4 sentence paragraph justifying the DCF range and case assumptions>",
+    "methodology": "Brief explanation of WACC and Terminal Growth drivers"
   },
-  "pegyAnalysis": "Your P/EGY interpretation...",
-  "valuationGap": "+12.5%",
+  "pegyAnalysis": {
+    "data": {
+        "ratio": <number>,
+        "growth": <number>,
+        "yield": <number>
+    },
+    "narrative": "<3-4 sentence paragraph interpreting the P/EGY in context of growth quality>"
+  },
+  "valuationGap": {
+    "percent": "+12.5%",
+    "narrative": "<2-3 sentences explaining the margin of safety at current levels>"
+  },
   "recommendation": "Undervalued | Fairly Valued | Overvalued",
   "targetPrice": 190,
   "hebrewInsight": "תובנה למשקיע: Your Hebrew insight..."
@@ -104,7 +116,7 @@ Return ONLY valid JSON in this exact format:
             return result;
 
         } catch (error) {
-            console.error(`[Valuator] Error:`, error.message);
+            console.error(`[Valuator] Error: `, error.message);
             return {
                 dcf: { baseCase: null, bullCase: null, bearCase: null, methodology: "Insufficient data" },
                 pegyAnalysis: "P/EGY analysis unavailable",
@@ -124,11 +136,11 @@ Return ONLY valid JSON in this exact format:
         }
 
         if (pegy < 1.5) {
-            return `יחס P/EGY של ${pegy.toFixed(2)} מעיד על הזדמנות השקעה אטרקטיבית בשילוב צמיחה ודיבידנד`;
+            return `יחס P / EGY של ${pegy.toFixed(2)} מעיד על הזדמנות השקעה אטרקטיבית בשילוב צמיחה ודיבידנד`;
         } else if (pegy < 2) {
-            return `שווי הוגן - יחס P/EGY של ${pegy.toFixed(2)} מצביע על תמחור סביר של הצמיחה המצופה`;
+            return `שווי הוגן - יחס P / EGY של ${pegy.toFixed(2)} מצביע על תמחור סביר של הצמיחה המצופה`;
         } else {
-            return `יחס P/EGY גבוה (${pegy.toFixed(2)}) - יש לבחון האם הצמיחה המשתמעת בתמחור ריאלית`;
+            return `יחס P / EGY גבוה(${pegy.toFixed(2)}) - יש לבחון האם הצמיחה המשתמעת בתמחור ריאלית`;
         }
     }
 }

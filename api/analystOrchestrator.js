@@ -88,13 +88,49 @@ async function generateFullReport(ticker) {
             valuator: valuatorResult // NEW
         };
 
-        // Step 3: Final Synthesis (Editor & QA Master)
-        console.log(`[Orchestrator] Synthesizing final report...`);
-        const finalReport = await editorQA.finalizeReport(ticker, agentOutputs);
+        // Step 3: Final Synthesis (Iterative Editor & QA Master)
+        console.log(`[Orchestrator] Synthesizing final report iteratively...`);
+
+        // 1. Generate Global Thesis
+        const thesis = await editorQA.generateThesis(ticker, agentOutputs);
+
+        // 2. Define Report Structure
+        const sections = [
+            { id: 'executiveSummary', name: 'Executive Summary & Business Strategy' },
+            { id: 'revenueQuality', name: 'Revenue Quality & Segment Deconstruction' },
+            { id: 'financialHealth', name: 'Financial Health & Capital Efficiency' },
+            { id: 'competitiveMoat', name: 'Competitive Moat & Long-Term Durability' },
+            { id: 'valuation', name: 'Valuation, DCF Scenarios & Margin of Safety' },
+            { id: 'technicalSignals', name: 'Technical Analysis & Market Sentiment' },
+            { id: 'conclusion', name: 'Final Conclusion & Actionable Recommendation' }
+        ];
+
+        const reportContent = {
+            thesis: thesis,
+            sections: {}
+        };
+
+        // 3. Generate each section in sequence to maintain focus and depth
+        for (const section of sections) {
+            console.log(`[Orchestrator] Generating section: ${section.name}...`);
+            const content = await editorQA.generateSection(ticker, section.name, thesis, agentOutputs);
+            reportContent.sections[section.id] = content;
+        }
+
+        // 4. Assemble high-level headers
+        const header = {
+            ticker: ticker,
+            companyName: overview.Name || ticker,
+            rating: agentOutputs.valuator?.recommendation || "Hold",
+            targetPrice: agentOutputs.valuator?.targetPrice || 0,
+            currentPrice: overview.analystTargetPrice || 0, // Fallback
+            marketCap: `${(parseFloat(overview.MarketCapitalization) / 1e9).toFixed(2)}B`
+        };
 
         return {
-            ...finalReport,
-            rawAgentOutputs: agentOutputs, // Keep for debugging or detailed views
+            header,
+            ...reportContent,
+            rawAgentOutputs: agentOutputs,
             timestamp: new Date().toISOString()
         };
 
