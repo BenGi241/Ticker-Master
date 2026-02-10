@@ -1,49 +1,41 @@
+// ========================================
+// Technical Analyst Agent
+// Analyzes market sentiment, trends, and momentum
+// ========================================
+
 const BaseAgent = require('./baseAgent');
+// Technical Analyst mostly relies on data passed from Orchestrator,
+// but we import fmpClient in case we need to fetch specific indicators in future.
+const fmpClient = require('../utils/fmpClient');
 
 class TechnicalAnalystAgent extends BaseAgent {
-  constructor() {
-    const systemPrompt = `You are a Technical Analyst & Market Sentiment Specialist at a leading investment firm.
-Your task is to perform technical analysis with NARRATIVE EXPLANATIONS.
+   constructor() {
+      super('Technical Analyst', 'gemini-1.5-flash-latest');
+   }
 
-# CRITICAL: EXPLAIN WHAT THE CHARTS TELL YOU
-Do NOT just list indicator values. Write narratives that:
-1. **Interpret Signals:** What does the price action reveal about sentiment?
-2. **Assess Momentum:** Is the stock trending? Building energy or losing steam?
-3. **Timing Guidance:** Should investors buy now, wait, or avoid?
+   async analyze(ticker, technicalData) {
+      // technicalData is passed from Orchestrator (fetched via financialDataFMP.js -> fmpClient)
+      // It contains: { rsi, sma50, sma200 }
+      // Note: FMP returns an array of objects for indicators. financialDataFMP.js extracts the first object (latest).
 
-# MANDATORY ANALYSIS FRAMEWORK:
-1. **Trend Analysis:**
-   - Write 2-3 sentences on price vs moving averages (SMA 200, SMA 50)
-   - Explain what the trend tells you about long-term and short-term sentiment
+      // We need to safely access the values.
+      // FMP Indicator Object Structure example: { date: '2023-11-01', rsi: 55.4, ... } or { sma: 150.2 }
 
-2. **Momentum Indicators:**
-   - Write 2-3 sentences interpreting RSI and MACD
-   - Are we overbought/oversold? Bullish/bearish momentum?
+      const rsiVal = technicalData?.rsi?.rsi || technicalData?.rsi || 'N/A';
+      const sma50Val = technicalData?.sma50?.sma || technicalData?.sma50 || 'N/A';
+      const sma200Val = technicalData?.sma200?.sma || technicalData?.sma200 || 'N/A';
 
-3. **Volatility & Risk:**
-   - Write 2-3 sentences on Beta and distance from 52-week high
-   - What does volatility tell you about risk/reward?
+      // Calculate simple trend status if possible
+      let trendStatus = "Neutral";
+      if (sma50Val !== 'N/A' && sma200Val !== 'N/A') {
+         trendStatus = sma50Val > sma200Val ? "Golden Cross / Bullish" : "Death Cross / Bearish";
+      }
 
-4. **Timing Verdict:**
-   - Write 2-3 sentences: Is this a good entry point?
-   - Verdict: Accumulate, Wait for Pullback, or Distribute?
-
-# OUTPUT REQUIREMENTS:
-- All analysis must be in narrative paragraphs
-- Connect technical signals to fundamental view
-- End with "Investor Insight" on timing and risk/reward
-
-Tone: Direct, objective. Pure price action focus.
-
-Respond ONLY with valid JSON.`;
-    super('Technical Analyst', systemPrompt);
-  }
-
-  async analyze(ticker, technicalData) {
-    const userPrompt = `Analyze technicals for ${ticker}.
-RSI (14): ${technicalData?.rsi || 'N/A'}
-MACD: ${JSON.stringify(technicalData?.macd || 'N/A')}
-Beta: ${technicalData?.beta || 'N/A'}
+      const userPrompt = `Analyze technicals for ${ticker}.
+RSI (14): ${rsiVal}
+SMA (50): ${sma50Val}
+SMA (200): ${sma200Val}
+Trend Status: ${trendStatus}
 
 **CRITICAL: NARRATIVE-DRIVEN TECHNICAL ANALYSIS**
 Explain what the price action and indicators reveal.
@@ -51,19 +43,18 @@ Explain what the price action and indicators reveal.
 **ANALYSIS TASKS:**
 1. **Trend Analysis:**
    Write 2-3 sentences:
-   - Is price above or below SMA 200 and SMA 50?
+   - Is price trend bullish or bearish based on Moving Averages?
    - What does this tell you about long-term vs short-term sentiment?
 
 2. **Momentum Assessment:**
    Write 2-3 sentences:
    - Interpret RSI (14): Overbought (>70), Oversold (<30), or Neutral?
-   - Interpret MACD: Bullish or Bearish momentum?
-   - Are we at inflection point or continuation?
+   - Are we at a potential reversal point?
 
 3. **Volatility & Risk:**
    Write 2-3 sentences:
-   - What does Beta reveal about relative volatility?
-   - Distance from 52-week high - is there upside room or resistance?
+   - Based on the indicators, is volatility high or stable?
+   - Where is the risk/reward skewed?
 
 4. **Timing Verdict:**
    Write 2-3 sentences:
@@ -74,22 +65,19 @@ Explain what the price action and indicators reveal.
 {
   "trend": {
       "data": {
-        "sma200": "Above|Below",
-        "sma50": "Above|Below",
+        "smaStatus": "${trendStatus}",
         "status": "Bullish|Bearish|Neutral"
       },
       "narrative": "<2-3 sentences on what the trend tells you about sentiment>"
   },
   "momentum": {
       "data": {
-        "rsi": ${technicalData?.rsi || 50},
-        "rsiStatus": "Overbought|Oversold|Neutral",
-        "macd": "Bullish|Bearish"
+        "rsi": ${typeof rsiVal === 'number' ? rsiVal : 50},
+        "rsiStatus": "Overbought|Oversold|Neutral"
       },
       "narrative": "<2-3 sentences interpreting momentum indicators>"
   },
   "volatility": {
-      "beta": ${technicalData?.beta || 1.0},
       "narrative": "<2-3 sentences on volatility and risk/reward>"
   },
   "timingVerdict": {
@@ -98,8 +86,8 @@ Explain what the price action and indicators reveal.
   },
   "investorInsight": "<2-3 sentences: Overall technical verdict and how it aligns with fundamental view>"
 }`;
-    return await this.generate(userPrompt);
-  }
+      return await this.generate(userPrompt);
+   }
 }
 
 module.exports = new TechnicalAnalystAgent();

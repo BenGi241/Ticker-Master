@@ -608,7 +608,7 @@ async function getCompanyData(ticker) {
             if (FMP_KEY) {
                   try {
                         console.log(`[FMP] Fetching institutional data for ${ticker}...`);
-                        const [profile, income, balance, cashflow, segments, transcript, holders] = await Promise.all([
+                        const results = await Promise.allSettled([
                               getFMPProfile(ticker),
                               getFMPFinancials(ticker, 'income-statement'),
                               getFMPFinancials(ticker, 'balance-sheet-statement'),
@@ -617,6 +617,17 @@ async function getCompanyData(ticker) {
                               getFMPEarningsTranscript(ticker),
                               getFMPInstitutionalHolders(ticker)
                         ]);
+
+                        // Extract values, defaulting to null/empty array on failure
+                        const [profile, income, balance, cashflow, segments, transcript, holders] = results.map((r, i) => {
+                              if (r.status === 'fulfilled') {
+                                    return r.value;
+                              } else {
+                                    console.warn(`[FMP] Failed to fetch item ${i} for ${ticker}:`, r.reason?.message);
+                                    // Return appropriate default based on what was expected
+                                    return (i >= 4) ? (i === 6 ? [] : null) : (i === 0 ? null : []);
+                              }
+                        });
 
                         if (profile) {
                               const financials = normalizeFMPFinancialData(income, balance, cashflow);
@@ -661,46 +672,51 @@ async function getCompanyData(ticker) {
 
             // 2. Fallback to Alpha Vantage / Finnhub (Legacy Stack)
             console.log(`[Legacy] Fetching data for ${ticker} via Alpha Vantage/Finnhub...`);
-            const overview = await getCompanyOverview(ticker);
-            await sleep(1000);
-            const incomeStatements = await getIncomeStatement(ticker);
-            await sleep(1000);
-            const balanceSheets = await getBalanceSheet(ticker);
-            await sleep(1000);
-            const cashFlows = await getCashFlow(ticker);
+            try {
+                  const overview = await getCompanyOverview(ticker);
+                  await sleep(1000);
+                  const incomeStatements = await getIncomeStatement(ticker);
+                  await sleep(1000);
+                  const balanceSheets = await getBalanceSheet(ticker);
+                  await sleep(1000);
+                  const cashFlows = await getCashFlow(ticker);
 
-            const finnhubProfile = await getFinnhubProfile(ticker);
+                  const finnhubProfile = await getFinnhubProfile(ticker);
 
-            const financials = normalizeFinancialData(overview, incomeStatements, balanceSheets, cashFlows);
+                  const financials = normalizeFinancialData(overview, incomeStatements, balanceSheets, cashFlows);
 
-            const companyOverview = {
-                  name: overview.Name,
-                  ticker: overview.Symbol,
-                  description: overview.Description,
-                  sector: overview.Sector,
-                  industry: overview.Industry,
-                  exchange: overview.Exchange,
-                  currency: overview.Currency,
-                  country: overview.Country,
-                  marketCap: parseFinancialValue(overview.MarketCapitalization) / 1e9,
-                  employees: overview.FullTimeEmployees,
-                  fiscalYearEnd: overview.FiscalYearEnd,
-                  latestQuarter: overview.LatestQuarter,
-                  logo: finnhubProfile?.logo || null,
-                  weburl: finnhubProfile?.weburl || overview.OfficialSite || null,
-                  peRatio: parseFinancialValue(overview.PERatio),
-                  pegRatio: parseFinancialValue(overview.PEGRatio),
-                  eps: parseFinancialValue(overview.EPS),
-                  analystTargetPrice: parseFinancialValue(overview.AnalystTargetPrice),
-                  beta: parseFinancialValue(overview.Beta)
-            };
+                  const companyOverview = {
+                        name: overview.Name,
+                        ticker: overview.Symbol,
+                        description: overview.Description,
+                        sector: overview.Sector,
+                        industry: overview.Industry,
+                        exchange: overview.Exchange,
+                        currency: overview.Currency,
+                        country: overview.Country,
+                        marketCap: parseFinancialValue(overview.MarketCapitalization) / 1e9,
+                        employees: overview.FullTimeEmployees,
+                        fiscalYearEnd: overview.FiscalYearEnd,
+                        latestQuarter: overview.LatestQuarter,
+                        logo: finnhubProfile?.logo || null,
+                        weburl: finnhubProfile?.weburl || overview.OfficialSite || null,
+                        peRatio: parseFinancialValue(overview.PERatio),
+                        pegRatio: parseFinancialValue(overview.PEGRatio),
+                        eps: parseFinancialValue(overview.EPS),
+                        analystTargetPrice: parseFinancialValue(overview.AnalystTargetPrice),
+                        beta: parseFinancialValue(overview.Beta)
+                  };
 
-            return {
-                  overview: companyOverview,
-                  financials,
-                  timestamp: new Date().toISOString(),
-                  source: 'Legacy'
-            };
+                  return {
+                        overview: companyOverview,
+                        financials,
+                        timestamp: new Date().toISOString(),
+                        source: 'Legacy'
+                  };
+            } catch (legacyError) {
+                  console.error(`[Legacy] Failed for ${ticker}:`, legacyError.message);
+                  throw new Error(`Unable to fetch data for ${ticker} from any source: ${legacyError.message}`);
+            }
 
       } catch (error) {
             throw new Error(`Failed to fetch company data: ${error.message}`);

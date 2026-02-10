@@ -259,7 +259,7 @@ app.get('/api/sec/tickers', async (req, res) => {
             if (cachedData) return res.json(cachedData);
 
             const response = await axios.get('https://www.sec.gov/files/company_tickers.json', {
-                  headers: { 'User-Agent': 'analysis_tool@example.com' }
+                  headers: { 'User-Agent': 'FinancialAnalystApp/1.0 (financial.analyst@example.com)' }
             });
 
             cache.set(cacheKey, response.data, 86400); // Cache for 24 hours
@@ -279,7 +279,7 @@ app.get('/api/sec/facts/:cik', async (req, res) => {
             if (cachedData) return res.json(cachedData);
 
             const response = await axios.get(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`, {
-                  headers: { 'User-Agent': 'analysis_tool@example.com' }
+                  headers: { 'User-Agent': 'FinancialAnalystApp/1.0 (financial.analyst@example.com)' }
             });
 
             cache.set(cacheKey, response.data, 3600); // Cache for 1 hour

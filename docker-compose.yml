@@ -47,6 +47,8 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3000
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
     volumes:
       - ./server.js:/app/server.js
       - ./api:/app/api
@@ -57,7 +59,6 @@ services:
       - ticker-network
     profiles:
       - dev
-    command: npm run dev
 
 networks:
   ticker-network:

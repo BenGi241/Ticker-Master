@@ -4,7 +4,7 @@
 // ========================================
 
 const BaseAgent = require('./baseAgent');
-const financialDataAPI = require('../financialData');
+const fmpClient = require('../utils/fmpClient');
 
 class EfficiencyOfficer extends BaseAgent {
     constructor() {
@@ -15,22 +15,59 @@ class EfficiencyOfficer extends BaseAgent {
         try {
             console.log(`[Efficiency Officer] Analyzing capital efficiency for ${ticker}...`);
 
-            // Gather efficiency metrics
-            const [roicData, economicSpread, netDebtEV, evMultiples] = await Promise.all([
-                financialDataAPI.getROIC(ticker),
-                financialDataAPI.getEconomicSpread(ticker),
-                financialDataAPI.getNetDebtToEVTrend(ticker, 5),
-                financialDataAPI.getEVMultiplesTrend(ticker, 5)
+            // Gather efficiency metrics using FMP Client
+            const [metrics, ratios, evData, dcf] = await Promise.all([
+                fmpClient.getKeyMetrics(ticker),
+                fmpClient.getRatios(ticker),
+                fmpClient.getEnterpriseValue(ticker, 5), // Get last 5 years
+                fmpClient.getDCF(ticker)
             ]);
+
+            // Extract key data points
+            const roicData = { roic: metrics?.roicTTM || 0 };
+
+            // Calculate Economic Spread (ROIC - WACC)
+            // Use WACC from DCF endpoint if available, otherwise assume 9%
+            const wacc = dcf?.wacc || 9.0;
+            const economicSpread = { economicSpread: (roicData.roic - wacc).toFixed(2) };
+
+            // Calculate Net Debt / EV Trend
+            // evData is an array of objects [ { date, stockPrice, numberOfShares, marketCapitalization, minusCashAndCashEquivalents, addTotalDebt, enterpriseValue }, ... ]
+            const netDebtEV = {
+                current: { ratio: 0 },
+                improving: false
+            };
+
+            if (evData && evData.length > 0) {
+                // Latest
+                const latest = evData[0];
+                // Net Debt = Total Debt - Cash
+                const netDebt = latest.addTotalDebt - latest.minusCashAndCashEquivalents;
+                const ev = latest.enterpriseValue;
+                const ratio = ev ? (netDebt / ev) * 100 : 0;
+
+                netDebtEV.current.ratio = ratio.toFixed(2);
+
+                // Trend check (vs previous year)
+                if (evData.length > 1) {
+                    const prev = evData[1];
+                    const prevNetDebt = prev.addTotalDebt - prev.minusCashAndCashEquivalents;
+                    const prevEV = prev.enterpriseValue;
+                    const prevRatio = prevEV ? (prevNetDebt / prevEV) * 100 : 0;
+                    netDebtEV.improving = ratio < prevRatio;
+                }
+            }
 
             const prompt = `You are an Efficiency & Quality Control Analyst at a top-tier investment firm.
 Your task is to evaluate capital efficiency and write NARRATIVE ANALYSIS for each quality metric.
 
 **Company:** ${ticker}
 **Data:**
-- ROIC: ${roicData?.roic || 'N/A'}%
-- Economic Spread: ${economicSpread?.economicSpread || 'N/A'}%
-- Net Debt/EV: ${netDebtEV?.current?.ratio || 'N/A'}%
+- ROIC (TTM): ${roicData.roic}%
+- WACC (Est.): ${wacc}%
+- Economic Spread: ${economicSpread.economicSpread}%
+- Net Debt/EV: ${netDebtEV.current.ratio}%
+- Improving Efficiency: ${netDebtEV.improving ? "Yes" : "No"}
 
 **CRITICAL: NARRATIVE-DRIVEN CHECKLIST**
 For EACH checklist item, you must provide:
@@ -48,9 +85,9 @@ Write a dedicated 4-5 sentence "Capital Efficiency Narrative" that synthesizes:
 - Management's capital allocation track record
 
 **Checklist Criteria:**
-1. Revenue Growth > 12% (or >6% stable)
+1. Revenue Growth > 12% (or >6% stable) [Check overview/financials context]
 2. ROIC > 15%
-3. FCF Growth > 15%
+3. FCF Growth > 15% [Check financials]
 4. EPS Growth > 15% (faster than revenue)
 5. Share Dilution < 2%
 6. Net Debt / FCF < 5x
@@ -117,26 +154,6 @@ Return ONLY valid JSON in this exact format:
                 investorInsight: "Efficiency analysis unavailable due to insufficient data."
             };
         }
-    }
-
-    buildScorecard(roicData, economicSpread, netDebtEV, companyData) {
-        const roic = parseFloat(roicData?.roic || 0);
-        const spread = parseFloat(economicSpread?.economicSpread || 0);
-        const netDebtRatio = parseFloat(netDebtEV?.current?.ratio || 100);
-
-        return {
-            positiveROIC: roic > 10 ? "✔️" : "❌",
-            valueCreation: spread > 0 ? "✔️" : "❌",
-            healthyLeverage: netDebtRatio < 30 ? "✔️" : "❌",
-            improvingEfficiency: netDebtEV?.improving ? "✔️" : "❌"
-        };
-    }
-
-    formatScorecard(scorecard) {
-        return `- Positive ROIC (>10%): ${scorecard.positiveROIC}
-- Economic Value Creation: ${scorecard.valueCreation}
-- Healthy Leverage (<30%): ${scorecard.healthyLeverage}
-- Improving Efficiency Trend: ${scorecard.improvingEfficiency}`;
     }
 
     generateDefaultEfficiencyNarrative(roicData, economicSpread) {
