@@ -49,6 +49,7 @@ Before answering, THINK:
 
     async generate(userPrompt) {
         try {
+            console.log(`[${this.name}] 🤖 Starting AI synthesis...`);
             const model = this.genAI.getGenerativeModel({
                 model: this.modelName,
                 systemInstruction: this.systemPrompt
@@ -57,6 +58,7 @@ Before answering, THINK:
             const result = await model.generateContent(userPrompt);
             const response = await result.response;
             const text = response.text();
+            console.log(`[${this.name}] ✨ Synthesis complete`);
 
             // Attempt to extract JSON from the response
             const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -64,7 +66,7 @@ Before answering, THINK:
                 try {
                     return JSON.parse(jsonMatch[0]);
                 } catch (e) {
-                    console.warn(`[${this.name}] JSON Parse Error, returning raw text:`, e.message);
+                    console.warn(`[${this.name}] ⚠️ JSON Parse Error, returning raw text:`, e.message);
                     return text;
                 }
             }

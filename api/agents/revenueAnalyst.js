@@ -33,22 +33,46 @@ Respond ONLY with valid JSON.`;
   }
 
   async analyze(ticker, companyData) {
-    const { overview, financials, segments } = companyData;
+    // Handle both FMP (profile) and legacy (overview) structures
+    const overview = companyData.profile || companyData.overview;
+    const financials = companyData.ttmFinancials || companyData.financials;
+    const segments = companyData.segments;
+    const quarterlyData = companyData.quarterlyData;
 
+    // Build enhanced segments context from FMP v4 data
     let segmentsContext = "";
-    if (segments) {
+    if (segments && (segments.product?.length > 0 || segments.geographic?.length > 0)) {
       segmentsContext = `
-PROVEN REVENUE SEGMENTATION (Institutional Data):
+PROVEN REVENUE SEGMENTATION (FMP Institutional Data):
 Product Segments: ${JSON.stringify(segments.product?.slice(0, 5), null, 2)}
 Geographic Segments: ${JSON.stringify(segments.geographic?.slice(0, 5), null, 2)}
+`;
+    } else {
+      segmentsContext = `
+NOTE: Detailed segment data unavailable. Perform aggregate revenue analysis.
+`;
+    }
+
+    // Build quarterly trend context
+    let quarterlyContext = "";
+    if (quarterlyData && quarterlyData.income) {
+      quarterlyContext = `
+QUARTERLY TRENDS (Last 8 Quarters):
+${JSON.stringify(quarterlyData.income.slice(0, 8).map(q => ({
+        date: q.date,
+        revenue: q.revenue,
+        grossProfit: q.grossProfit,
+        operatingIncome: q.operatingIncome
+      })), null, 2)}
 `;
     }
 
     const userPrompt = `Ticker: ${ticker}
-Company: ${overview.name}
+Company: ${overview?.name || overview?.companyName || 'Unknown'}
 ${segmentsContext}
-Financial History (5 Years):
-${JSON.stringify(financials.annual, null, 2)}
+${quarterlyContext}
+TTM Financial Summary:
+${JSON.stringify(financials, null, 2)}
 
 **CRITICAL: NARRATIVE-DRIVEN ANALYSIS**
 Apply the "Rule of 3" to every segment:

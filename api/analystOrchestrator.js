@@ -3,7 +3,8 @@
 // Coordinates the 8-agent system
 // ========================================
 
-const financialDataAPI = require('./financialData');
+const financialDataAPI = require('./financialData');  // Legacy fallback
+const financialDataFMP = require('./financialDataFMP');  // NEW: Primary FMP data source
 const newsDataAPI = require('./newsData');
 
 
@@ -36,51 +37,80 @@ async function generateFullReport(ticker) {
 
     try {
         // Step 1: Data Gathering (Data Collector role)
-        // Gather all necessary data in parallel to feed the agents
-        const [companyData, newsData, insiderData, technicalData] = await Promise.all([
-            financialDataAPI.getCompanyData(ticker),
-            newsDataAPI.getNews(ticker),
-            financialDataAPI.getInsiderTransactions(ticker),
-            financialDataAPI.getTechnicalIndicators(ticker)
-        ]);
+        console.log(`[Orchestrator] 📂 Gathering enriched FMP data for ${ticker}...`);
 
-        if (!companyData || !companyData.overview || !companyData.financials) {
-            console.error(`[Orchestrator] Missing critical company data for ${ticker}. Aborting report generation.`);
+        let companyData;
+        let newsData;
+
+        // Try FMP enriched data first
+        try {
+            companyData = await financialDataFMP.getEnrichedData(ticker);
+            console.log(`[Orchestrator] ✅ FMP enriched data complete (source: ${companyData.source})`);
+        } catch (fmpError) {
+            console.warn(`[Orchestrator] ⚠️ FMP fetch failed, falling back to legacy APIs:`, fmpError.message);
+            // Fallback to legacy data sources
+            companyData = await financialDataAPI.getCompanyData(ticker);
+            console.log(`[Orchestrator] ✅ Legacy data complete (source: ${companyData.source || 'Legacy'})`);
+        }
+
+        // Fetch news in parallel (still uses NewsAPI/legacy)
+        newsData = await newsDataAPI.getNews(ticker);
+
+        if (!companyData || (!companyData.profile && !companyData.overview)) {
+            console.error(`[Orchestrator] ❌ Missing critical company data for ${ticker}. Aborting report generation.`);
             throw new Error(`Critical data missing (Overview/Financials). This usually happens when API limits are hit.`);
         }
 
-        const { overview, financials } = companyData;
+        // Normalize data structure (FMP uses 'profile', legacy uses 'overview')
+        const overview = companyData.profile || companyData.overview;
+        const financials = companyData.ttmFinancials || companyData.financials;
+
+        // Extract technical indicators from FMP prices or legacy data
+        const technicalData = companyData.prices ? {
+            prices: companyData.prices,
+            source: 'FMP'
+        } : {
+            // Legacy structure - will be handled by technical analyst
+            rsi: null,
+            sma50: null,
+            sma200: null
+        };
 
         // Step 2: Tiered Analyst Execution
         // Tier 1: Data analysis agents (run in parallel)
-        console.log(`[Orchestrator] Tier 1: Data gathering agents...`);
+        console.log(`[Orchestrator] 🚀 Tier 1: Executing Data Analysis Agents...`);
 
         const tier1Results = await Promise.allSettled([
             financialModeler.analyze(ticker, companyData),
             revenueAnalyst.analyze(ticker, companyData),
             moatAnalyst.analyze(ticker, overview, companyData, []) // Peers can be added later
         ]);
+        console.log(`[Orchestrator] ✅ Tier 1 complete.`);
 
         // Tier 2: Analysis agents (depend on Tier 1, run in parallel)
-        console.log(`[Orchestrator] Tier 2: Analysis agents...`);
+        console.log(`[Orchestrator] 🚀 Tier 2: Executing Strategic Analysis Agents...`);
 
         const tier2Results = await Promise.allSettled([
-            efficiencyOfficer.analyze(ticker, companyData), // NEW: Uses ROIC data
-            valuationSpecialist.analyze(ticker, companyData, { price: overview.analystTargetPrice }),
+            efficiencyOfficer.analyze(ticker, companyData), // Uses ROIC from keyMetrics
+            valuationSpecialist.analyze(ticker, companyData, {
+                price: overview.price || overview.analystTargetPrice
+            }),
             managementAnalyst.analyze(ticker, companyData, newsData),
             technicalAnalyst.analyze(ticker, technicalData)
         ]);
+        console.log(`[Orchestrator] ✅ Tier 2 complete.`);
 
         // Tier 3: Valuator (depends on Tier 1 + Tier 2 data)
-        console.log(`[Orchestrator] Tier 3: Valuation synthesis...`);
+        console.log(`[Orchestrator] 🚀 Tier 3: Executing Valuation Synthesis...`);
 
         const efficiencyData = tier2Results[0].status === 'fulfilled' ? tier2Results[0].value : null;
         const revenueData = tier1Results[1].status === 'fulfilled' ? tier1Results[1].value : null;
 
         const valuatorResult = await valuator.analyze(ticker, companyData, efficiencyData, revenueData).catch(err => {
-            console.error(`[Valuator] Failed:`, err.message);
+            console.error(`[Valuator] ❌ Failed:`, err.message);
             return { error: 'Valuation analysis failed' };
         });
+        console.log(`[Orchestrator] ✅ Tier 3 complete.`);
 
         // Map all results
         const agentOutputs = {
@@ -95,7 +125,7 @@ async function generateFullReport(ticker) {
         };
 
         // Step 3: Final Synthesis (Iterative Editor & QA Master)
-        console.log(`[Orchestrator] Synthesizing final report iteratively...`);
+        console.log(`[Orchestrator] 📝 Synthesizing final report iteratively...`);
 
         // 1. Generate Global Thesis
         const thesis = await editorQA.generateThesis(ticker, agentOutputs);

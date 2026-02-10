@@ -4,9 +4,7 @@
 // ========================================
 
 const BaseAgent = require('./baseAgent');
-// Technical Analyst mostly relies on data passed from Orchestrator,
-// but we import fmpClient in case we need to fetch specific indicators in future.
-const fmpClient = require('../utils/fmpClient');
+const technicalCalc = require('../utils/technicalCalculator');
 
 class TechnicalAnalystAgent extends BaseAgent {
    constructor() {
@@ -21,17 +19,40 @@ class TechnicalAnalystAgent extends BaseAgent {
       // We need to safely access the values.
       // FMP Indicator Object Structure example: { date: '2023-11-01', rsi: 55.4, ... } or { sma: 150.2 }
 
-      const rsiVal = technicalData?.rsi?.rsi || technicalData?.rsi || 'N/A';
-      const sma50Val = technicalData?.sma50?.sma || technicalData?.sma50 || 'N/A';
-      const sma200Val = technicalData?.sma200?.sma || technicalData?.sma200 || 'N/A';
-
-      // Calculate simple trend status if possible
+      // Handle FMP prices structure or legacy indicators
+      let rsiVal = 'N/A';
+      let sma50Val = 'N/A';
+      let sma200Val = 'N/A';
+      let currentPrice = 'N/A';
       let trendStatus = "Neutral";
-      if (sma50Val !== 'N/A' && sma200Val !== 'N/A') {
-         trendStatus = sma50Val > sma200Val ? "Golden Cross / Bullish" : "Death Cross / Bearish";
+
+      if (technicalData.prices && technicalData.prices.length > 0) {
+         // FMP structure - calculate indicators client-side
+         const prices = technicalData.prices;
+         currentPrice = prices[0]?.close || prices[0]?.adjClose || 'N/A';
+
+         // Calculate indicators
+         rsiVal = technicalCalc.calculateRSI(prices, 14);
+         sma50Val = technicalCalc.calculateSMA(prices, 50);
+         sma200Val = technicalCalc.calculateSMA(prices, 200);
+
+         // Determine trend
+         if (sma50Val !== null && sma200Val !== null) {
+            trendStatus = sma50Val > sma200Val ? "Golden Cross / Bullish" : "Death Cross / Bearish";
+         }
+      } else {
+         // Legacy structure - use pre-calculated values
+         rsiVal = technicalData?.rsi?.rsi || technicalData?.rsi || 'N/A';
+         sma50Val = technicalData?.sma50?.sma || technicalData?.sma50 || 'N/A';
+         sma200Val = technicalData?.sma200?.sma || technicalData?.sma200 || 'N/A';
+
+         if (sma50Val !== 'N/A' && sma200Val !== 'N/A') {
+            trendStatus = sma50Val > sma200Val ? "Golden Cross / Bullish" : "Death Cross / Bearish";
+         }
       }
 
       const userPrompt = `Analyze technicals for ${ticker}.
+Current Price: ${currentPrice}
 RSI (14): ${rsiVal}
 SMA (50): ${sma50Val}
 SMA (200): ${sma200Val}

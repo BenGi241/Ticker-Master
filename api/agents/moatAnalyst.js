@@ -44,10 +44,36 @@ Respond ONLY with valid JSON.`;
   }
 
   async analyze(ticker, companyOverview, financialData, peerData) {
+    // Handle both FMP enriched and legacy data
+    const profile = financialData.profile || companyOverview;
+    const ratios = financialData.ratios || {};
+    const ttmFinancials = financialData.ttmFinancials || financialData.financials;
+    const quarterlyData = financialData.quarterlyData;
+
+    // Calculate margin stability (std dev) from quarterly data
+    let marginStability = "Unavailable";
+    if (quarterlyData && quarterlyData.income && quarterlyData.income.length >= 8) {
+      const margins = quarterlyData.income.slice(0, 8).map(q => {
+        if (q.revenue && q.grossProfit) {
+          return (q.grossProfit / q.revenue) * 100;
+        }
+        return null;
+      }).filter(m => m !== null);
+
+      if (margins.length >= 4) {
+        const mean = margins.reduce((a, b) => a + b, 0) / margins.length;
+        const variance = margins.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / margins.length;
+        const stdDev = Math.sqrt(variance);
+        marginStability = `Mean: ${mean.toFixed(2)}%, Std Dev: ${stdDev.toFixed(2)}%`;
+      }
+    }
+
     const userPrompt = `Analyze the competitive moat for ${ticker}.
-Company Overview: ${JSON.stringify(companyOverview, null, 2)}
-Financial Data: ${JSON.stringify(financialData, null, 2)}
-Peers: ${JSON.stringify(peerData, null, 2)}
+Company Profile: ${JSON.stringify(profile, null, 2)}
+TTM Ratios (FMP): ${JSON.stringify(ratios, null, 2)}
+TTM Financials: ${JSON.stringify(ttmFinancials, null, 2)}
+Margin Stability (8Q): ${marginStability}
+Peers: ${JSON.stringify(peerData || [], null, 2)}
 
 **CRITICAL: PARAGRAPH-BASED ANALYSIS**
 Do NOT use bullet points to list moat characteristics. Write cohesive paragraphs.
