@@ -119,7 +119,36 @@ async function getEnrichedData(ticker) {
             fmpClient.getAnalystEstimates(ticker)
         ]);
 
-        console.log(`[FMP Orchestrator] ✅ Core data fetched. Calculating derived metrics...`);
+        console.log(`[FMP Orchestrator] ✅ Core data fetched. Validating responses...`);
+
+        // Validate and log API responses
+        console.log(`[FMP Orchestrator] 📊 Response Validation:`);
+        console.log(`  - Income Statements: ${incomeQuarterly?.length || 0} quarters`);
+        console.log(`  - Balance Sheets: ${balanceQuarterly?.length || 0} quarters`);
+        console.log(`  - Cash Flow Statements: ${cashflowQuarterly?.length || 0} quarters`);
+        console.log(`  - Product Segments: ${productSegs?.length || 0} items`);
+        console.log(`  - Geographic Segments: ${geoSegs?.length || 0} items`);
+        console.log(`  - TTM Ratios: ${ratiosTTM ? 'Available' : 'NULL'}`);
+        console.log(`  - Key Metrics: ${keyMetricsTTM ? 'Available' : 'NULL'}`);
+        console.log(`  - Company Profile: ${profile ? 'Available' : 'NULL'}`);
+        console.log(`  - Insider Trades: ${insiders?.length || 0} transactions`);
+        console.log(`  - Institutional Holders: ${institutions?.length || 0} institutions`);
+        console.log(`  - Historical Prices: ${prices?.historical?.length || 0} days`);
+        console.log(`  - DCF Valuation: ${dcf ? 'Available' : 'NULL'}`);
+        console.log(`  - Analyst Estimates: ${estimates?.length || 0} periods`);
+
+        // Validate critical data
+        if (!incomeQuarterly || incomeQuarterly.length < 4) {
+            console.warn(`[FMP Orchestrator] ⚠️ WARNING: Insufficient quarterly income data (${incomeQuarterly?.length || 0}/4 needed for TTM)`);
+        }
+        if (!profile) {
+            console.warn(`[FMP Orchestrator] ⚠️ WARNING: Company profile is missing`);
+        }
+        if (!prices?.historical || prices.historical.length < 50) {
+            console.warn(`[FMP Orchestrator] ⚠️ WARNING: Insufficient price history (${prices?.historical?.length || 0}/50 recommended for technicals)`);
+        }
+
+        console.log(`[FMP Orchestrator] 🧮 Calculating derived metrics...`);
 
         // Calculate TTM Financials
         const ttmFinancials = {
@@ -138,6 +167,15 @@ async function getEnrichedData(ticker) {
         // Calculate Quality Metrics
         const earningsQuality = calculateEarningsQuality(incomeQuarterly, cashflowQuarterly);
         const inventoryMetrics = calculateInventoryDays(balanceQuarterly, incomeQuarterly);
+
+        // Log calculated metrics
+        console.log(`[FMP Orchestrator] 💰 TTM Financials Calculated:`);
+        console.log(`  - Revenue: ${ttmFinancials.revenue ? `$${(ttmFinancials.revenue / 1e9).toFixed(2)}B` : 'N/A'}`);
+        console.log(`  - Net Income: ${ttmFinancials.netIncome ? `$${(ttmFinancials.netIncome / 1e9).toFixed(2)}B` : 'N/A'}`);
+        console.log(`  - Free Cash Flow: ${ttmFinancials.freeCashFlow ? `$${(ttmFinancials.freeCashFlow / 1e9).toFixed(2)}B` : 'N/A'}`);
+        console.log(`[FMP Orchestrator] 🔍 Quality Metrics:`);
+        console.log(`  - Earnings Quality: ${earningsQuality ? earningsQuality.interpretation : 'N/A'}`);
+        console.log(`  - Inventory Days: ${inventoryMetrics ? `${inventoryMetrics.days} days (${inventoryMetrics.interpretation})` : 'N/A'}`);
 
         console.log(`[FMP Orchestrator] ✅ Enriched data package ready for ${ticker}`);
 
